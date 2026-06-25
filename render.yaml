@@ -1,9 +1,7 @@
 services:
   - type: web
     name: factory-management
-    runtime: python
-    buildCommand: export CARGO_HOME=/tmp/cargo && export RUSTUP_HOME=/tmp/rustup && pip install -r requirements.txt
-    startCommand: python main.py
+    runtime: docker
     envVars:
       - key: SECRET_KEY
         generateValue: true
