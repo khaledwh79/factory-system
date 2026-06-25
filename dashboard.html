@@ -1,0 +1,2202 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>لوحة التحكم — نظام إدارة المصنع</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --sidebar-w: 260px;
+      --accent: #6366f1;
+      --accent2: #8b5cf6;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --sidebar-bg: #0f172a;
+      --sidebar-text: rgba(255,255,255,0.65);
+      --sidebar-active-bg: rgba(99,102,241,0.15);
+      --sidebar-active-border: #6366f1;
+    }
+    * { box-sizing: border-box; }
+    body { font-family: 'Tajawal', sans-serif; background: var(--bg); color: var(--text); margin: 0; }
+
+    /* ============ SIDEBAR ============ */
+    .sidebar {
+      width: var(--sidebar-w);
+      min-height: 100vh;
+      background: var(--sidebar-bg);
+      position: fixed; top: 0; right: 0;
+      display: flex; flex-direction: column;
+      z-index: 200;
+      border-left: 1px solid rgba(255,255,255,0.05);
+    }
+    .sidebar-brand {
+      padding: 24px 20px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .sidebar-brand .logo {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .sidebar-brand .logo-icon {
+      width: 42px; height: 42px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem;
+      box-shadow: 0 4px 12px rgba(99,102,241,0.4);
+      flex-shrink: 0;
+    }
+    .sidebar-brand .logo-text { line-height: 1.2; }
+    .sidebar-brand .logo-text strong { color: #f1f5f9; font-size: 0.95rem; font-weight: 700; display: block; }
+    .sidebar-brand .logo-text span { color: #475569; font-size: 0.72rem; }
+
+    .nav-section-label {
+      color: #334155; font-size: 0.68rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      padding: 18px 20px 6px;
+    }
+    .nav-btn {
+      display: flex; align-items: center; gap: 12px;
+      width: 100%; background: none; border: none;
+      padding: 11px 20px; cursor: pointer;
+      color: var(--sidebar-text);
+      font-family: 'Tajawal', sans-serif;
+      font-size: 0.92rem; font-weight: 500;
+      border-right: 3px solid transparent;
+      transition: all 0.18s;
+      text-align: right;
+    }
+    .nav-btn:hover { color: #e2e8f0; background: rgba(255,255,255,0.04); }
+    .nav-btn.active {
+      color: #a5b4fc;
+      background: var(--sidebar-active-bg);
+      border-right-color: var(--sidebar-active-border);
+    }
+    .nav-btn .ni {
+      width: 30px; height: 30px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 8px; font-size: 1rem;
+      background: rgba(255,255,255,0.05);
+      flex-shrink: 0;
+    }
+    .nav-btn.active .ni { background: rgba(99,102,241,0.2); }
+    .nav-badge {
+      margin-right: auto;
+      background: #ef4444; color: white;
+      font-size: 0.68rem; padding: 2px 7px; border-radius: 20px;
+      font-weight: 700; min-width: 20px; text-align: center;
+    }
+
+    /* ===== Sidebar scrollable nav ===== */
+    .sidebar-nav {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-bottom: 8px;
+    }
+    .sidebar-nav::-webkit-scrollbar { width: 4px; }
+    .sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+    .sidebar-nav::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.12);
+      border-radius: 2px;
+    }
+    .sidebar-nav::-webkit-scrollbar-thumb:hover {
+      background: rgba(255,255,255,0.22);
+    }
+
+    .sidebar-footer {
+      border-top: 1px solid rgba(255,255,255,0.07);
+      padding: 12px 0;
+      flex-shrink: 0;
+    }
+    .user-chip {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 20px; margin-bottom: 4px;
+    }
+    .user-avatar {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem; color: white; font-weight: 700;
+      flex-shrink: 0;
+    }
+    .user-chip-info strong { color: #e2e8f0; font-size: 0.85rem; display: block; line-height: 1.2; }
+    .user-chip-info span { color: #475569; font-size: 0.72rem; }
+
+    /* ============ MAIN ============ */
+    .main { margin-right: var(--sidebar-w); min-height: 100vh; }
+
+    /* Topbar */
+    .topbar {
+      background: white;
+      border-bottom: 1px solid var(--border);
+      padding: 14px 28px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .topbar-title { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+    .topbar-title small { color: var(--muted); font-size: 0.8rem; font-weight: 400; margin-right: 8px; }
+
+    /* Content */
+    .content { padding: 28px; }
+
+    /* ============ CARDS ============ */
+    .card-box {
+      background: var(--card);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      padding: 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+    .card-title {
+      font-size: 1rem; font-weight: 700; color: var(--text);
+      margin-bottom: 20px; padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    /* Stat Cards */
+    .stat-card {
+      border-radius: 16px; padding: 22px 24px;
+      color: white; position: relative; overflow: hidden;
+      border: none; height: 100%;
+    }
+    .stat-card .sc-bg {
+      position: absolute; inset: 0;
+      opacity: 0.12; font-size: 5rem;
+      display: flex; align-items: center; justify-content: flex-start;
+      padding-left: 10px; pointer-events: none;
+    }
+    .stat-card .sc-value { font-size: 2.2rem; font-weight: 800; line-height: 1; }
+    .stat-card .sc-label { font-size: 0.88rem; opacity: 0.85; margin-top: 6px; }
+    .stat-card .sc-sub { font-size: 0.75rem; opacity: 0.6; margin-top: 4px; }
+    .g-indigo  { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); box-shadow: 0 6px 20px rgba(99,102,241,0.3); }
+    .g-emerald { background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 6px 20px rgba(16,185,129,0.3); }
+    .g-amber   { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); box-shadow: 0 6px 20px rgba(245,158,11,0.3); }
+    .g-rose    { background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%); box-shadow: 0 6px 20px rgba(244,63,94,0.3); }
+
+    /* ============ FORM ============ */
+    .form-label { font-size: 0.82rem; font-weight: 600; color: var(--muted); margin-bottom: 5px; }
+    .form-control, .form-select {
+      border-radius: 10px; border: 1px solid var(--border);
+      font-family: 'Tajawal', sans-serif;
+      font-size: 0.9rem; padding: 9px 13px;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .form-control:focus, .form-select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+    }
+    .btn { font-family: 'Tajawal', sans-serif; border-radius: 10px; font-weight: 600; font-size: 0.88rem; }
+    .btn-primary { background: var(--accent); border-color: var(--accent); }
+    .btn-primary:hover { background: #4f46e5; border-color: #4f46e5; }
+
+    /* ============ TABLE ============ */
+    .table { font-size: 0.88rem; }
+    .table th { font-weight: 700; color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 2px solid var(--border); }
+    .table td { vertical-align: middle; color: var(--text); border-bottom: 1px solid #f1f5f9; }
+    .table tbody tr { transition: background 0.1s; }
+    .table tbody tr:hover { background: #f8fafc; }
+    .table tbody tr.row-danger { background: #fff5f5; }
+    .table tbody tr.row-danger:hover { background: #ffeaea; }
+
+    /* Badges */
+    .pill {
+      display: inline-block; padding: 3px 10px;
+      border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+    }
+    .pill-indigo { background: #ede9fe; color: #6d28d9; }
+    .pill-green  { background: #d1fae5; color: #065f46; }
+    .pill-amber  { background: #fef3c7; color: #92400e; }
+    .pill-rose   { background: #ffe4e6; color: #9f1239; }
+    .pill-slate  { background: #f1f5f9; color: #475569; }
+
+    /* ============ TOAST ============ */
+    #toastStack {
+      position: fixed; bottom: 24px; left: 24px;
+      display: flex; flex-direction: column; gap: 10px;
+      z-index: 9999; max-width: 320px;
+    }
+    .toast-item {
+      background: #1e293b; color: white;
+      padding: 13px 18px; border-radius: 12px;
+      font-size: 0.88rem; font-family: 'Tajawal', sans-serif;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      border-right: 4px solid #6366f1;
+      animation: toastIn 0.3s ease;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .toast-item.t-success { border-right-color: #10b981; }
+    .toast-item.t-error   { border-right-color: #ef4444; }
+    .toast-item.t-warn    { border-right-color: #f59e0b; }
+    @keyframes toastIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+
+    /* ============ LOW STOCK BANNER ============ */
+    .low-banner {
+      background: linear-gradient(90deg, #fef9c3, #fef3c7);
+      border: 1px solid #fcd34d; border-radius: 12px;
+      padding: 12px 18px; margin-bottom: 20px;
+      color: #92400e; font-size: 0.88rem; display: none;
+      align-items: center; gap: 10px;
+    }
+
+    /* ============ AUDIT BADGES ============ */
+    .ab { display:inline-block; padding:3px 9px; border-radius:20px; font-size:0.72rem; font-weight:600; white-space:nowrap; }
+    .ab-ADD_MATERIAL    { background:#d1fae5; color:#065f46; }
+    .ab-EDIT_MATERIAL   { background:#fef3c7; color:#92400e; }
+    .ab-DELETE_MATERIAL { background:#ffe4e6; color:#9f1239; }
+    .ab-ADD_USER        { background:#dbeafe; color:#1e40af; }
+    .ab-DELETE_USER     { background:#ffe4e6; color:#9f1239; }
+    .ab-CHANGE_ROLE     { background:#ede9fe; color:#6d28d9; }
+    .ab-CHANGE_PASSWORD { background:#e0f2fe; color:#0369a1; }
+    .ab-LOGIN           { background:#f0fdf4; color:#166534; }
+
+    /* ============ PAGES ============ */
+    .page { display:none; }
+    .page.active { display:block; animation: fadeUp 0.25s ease both; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+    /* ============ PRINT ============ */
+    @media print {
+      .sidebar, .topbar, .no-print { display:none !important; }
+      .main { margin:0; }
+      .content { padding:0; }
+      .card-box { box-shadow:none; border:1px solid #ddd; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ========== Datalists عامة ========== -->
+<datalist id="dl-units">
+  <option value="كيلو">كيلو — Kilogram</option>
+  <option value="جرام">جرام — Gram</option>
+  <option value="ليتر">ليتر — Liter</option>
+  <option value="مل">مل — Milliliter</option>
+  <option value="حبة">حبة — Piece</option>
+  <option value="علبة">علبة — Box</option>
+  <option value="كرتون">كرتون — Carton</option>
+  <option value="شيكارة">شيكارة — Bag (Sack)</option>
+  <option value="عبوة">عبوة — Pack</option>
+  <option value="رول">رول — Roll</option>
+  <option value="رزمة">رزمة — Bundle</option>
+  <option value="طقم">طقم — Set</option>
+  <option value="صفيحة">صفيحة — Tin</option>
+  <option value="لفة">لفة — Wrap</option>
+</datalist>
+<datalist id="dl-raw-items"><!-- تُملأ بـ JS --></datalist>
+<datalist id="dl-pkg-items"><!-- تُملأ بـ JS --></datalist>
+<datalist id="dl-fin-items"><!-- تُملأ بـ JS --></datalist>
+<datalist id="dl-all-items"><!-- تُملأ بـ JS --></datalist>
+
+<!-- ========== SIDEBAR ========== -->
+<div class="sidebar">
+  <div class="sidebar-brand">
+    <div class="logo">
+      <div class="logo-icon">🏭</div>
+      <div class="logo-text">
+        <strong>نظام المصنع</strong>
+        <span>Factory Management</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar-nav">
+  <div class="nav-section-label">القائمة الرئيسية</div>
+  <button class="nav-btn active" id="nb-stats" onclick="showPage('stats',this)">
+    <div class="ni">📊</div> الإحصائيات
+  </button>
+  <button class="nav-btn" id="nb-materials" onclick="showPage('materials',this)">
+    <div class="ni">📦</div> إدارة المواد
+    <span class="nav-badge" id="lowBadge" style="display:none">0</span>
+  </button>
+
+  <!-- ===== قسم ERP ===== -->
+  <div class="nav-section-label">المخازن</div>
+  <button class="nav-btn" id="nb-raw" onclick="showPage('raw',this)">
+    <div class="ni">🌾</div> مخزن المواد الخام
+  </button>
+  <button class="nav-btn" id="nb-packaging" onclick="showPage('packaging',this)">
+    <div class="ni">🗃️</div> مخزن التعبئة
+  </button>
+  <button class="nav-btn" id="nb-finished" onclick="showPage('finished',this)">
+    <div class="ni">🍬</div> المنتج النهائي
+  </button>
+
+  <div class="nav-section-label">العمليات</div>
+  <button class="nav-btn" id="nb-receiving" onclick="showPage('receiving',this)">
+    <div class="ni">📥</div> استلام شحنة
+  </button>
+  <button class="nav-btn" id="nb-issuance" onclick="showPage('issuance',this)">
+    <div class="ni">📤</div> صرف من المخزن
+  </button>
+
+  <div class="nav-section-label">الإنتاج والتوزيع</div>
+  <button class="nav-btn" id="nb-production" onclick="showPage('production',this)">
+    <div class="ni">🏭</div> ربط الإنتاج
+  </button>
+  <button class="nav-btn" id="nb-distribution" onclick="showPage('distribution',this)">
+    <div class="ni">🚚</div> التوزيع للفروع
+  </button>
+  <button class="nav-btn" id="nb-branches" onclick="showPage('branches',this)">
+    <div class="ni">🏪</div> إدارة الفروع
+  </button>
+
+  <div class="nav-section-label">التحليل والتقارير</div>
+  <button class="nav-btn" id="nb-traceability" onclick="showPage('traceability',this)">
+    <div class="ni">🔍</div> التتبع
+  </button>
+  <button class="nav-btn" id="nb-reports" onclick="showPage('reports',this)">
+    <div class="ni">📊</div> التقارير
+  </button>
+
+  <div class="nav-section-label" id="adminLabel" style="display:none">الإدارة</div>
+  <button class="nav-btn" id="nb-users" style="display:none" onclick="showPage('users',this)">
+    <div class="ni">👥</div> المستخدمون
+  </button>
+  <button class="nav-btn" id="nb-audit" style="display:none" onclick="showPage('audit',this)">
+    <div class="ni">📋</div> سجل العمليات
+  </button>
+  </div><!-- end sidebar-nav -->
+
+  <div class="sidebar-footer">
+    <div class="user-chip">
+      <div class="user-avatar" id="userAvatar">—</div>
+      <div class="user-chip-info">
+        <strong id="userFullName">—</strong>
+        <span id="userRoleLbl">—</span>
+      </div>
+    </div>
+    <button class="nav-btn" onclick="openProfile()" style="color:#94a3b8;">
+      <div class="ni">⚙️</div> إعدادات الحساب
+    </button>
+    <button class="nav-btn" onclick="logout()" style="color:#ef4444;">
+      <div class="ni" style="background:rgba(239,68,68,0.1);">🚪</div> تسجيل الخروج
+    </button>
+  </div>
+</div>
+
+<!-- ========== MAIN ========== -->
+<div class="main">
+
+  <!-- Topbar -->
+  <div class="topbar no-print">
+    <div class="topbar-title" id="pageTitle">الإحصائيات <small>نظرة عامة على المخزون</small></div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-sm btn-outline-secondary no-print" onclick="window.print()">🖨️ طباعة</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- Low-stock banner -->
+    <div class="low-banner no-print" id="lowBanner">
+      <span style="font-size:1.2rem;">⚠️</span>
+      <span id="lowBannerText"></span>
+      <button class="btn btn-sm btn-warning ms-auto no-print" onclick="showLowStock()">عرض</button>
+    </div>
+
+    <!-- ===================== الإحصائيات ===================== -->
+    <div id="page-stats" class="page active">
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+          <div class="stat-card g-indigo">
+            <div class="sc-bg">📦</div>
+            <div class="sc-value" id="st-total">—</div>
+            <div class="sc-label">إجمالي المواد</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card g-emerald">
+            <div class="sc-bg">🔢</div>
+            <div class="sc-value" id="st-qty">—</div>
+            <div class="sc-label">إجمالي الكميات</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card g-amber">
+            <div class="sc-bg">⚠️</div>
+            <div class="sc-value" id="st-low">—</div>
+            <div class="sc-label">مواد ناقصة</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card g-rose">
+            <div class="sc-bg">👥</div>
+            <div class="sc-value" id="st-users">—</div>
+            <div class="sc-label">المستخدمون</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-md-7">
+          <div class="card-box">
+            <div class="card-title">📊 الكميات حسب التصنيف</div>
+            <canvas id="barChart" height="200"></canvas>
+          </div>
+        </div>
+        <div class="col-md-5">
+          <div class="card-box">
+            <div class="card-title">🥧 توزيع الأصناف</div>
+            <canvas id="pieChart" height="200"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== المواد ===================== -->
+    <div id="page-materials" class="page">
+      <div class="card-box">
+        <div class="card-title">📦 مخزون المواد</div>
+
+        <!-- فورم الإضافة -->
+        <div id="addForm" class="no-print">
+          <div class="row g-2 mb-2">
+            <div class="col-md-3">
+              <label class="form-label">الاسم بالعربي *</label>
+              <input id="ar" class="form-control" placeholder="مثال: أسمنت">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Name in English</label>
+              <input id="en" class="form-control" placeholder="e.g. Cement">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">التصنيف *</label>
+              <input id="cat" class="form-control" placeholder="مثال: مواد بناء" list="catList">
+              <datalist id="catList"></datalist>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">الكمية *</label>
+              <input id="qty" class="form-control" type="number" placeholder="0" min="0">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">الوحدة</label>
+              <input id="unit" class="form-control" value="وحدة">
+            </div>
+          </div>
+          <div class="row g-2 mb-3 align-items-end">
+            <div class="col-md-3">
+              <label class="form-label">حد التنبيه <span class="text-muted fw-normal">(اختياري)</span></label>
+              <input id="minQty" class="form-control" type="number" placeholder="0" min="0">
+            </div>
+            <div class="col-md-2">
+              <button onclick="saveMaterial()" class="btn btn-primary w-100">+ إضافة مادة</button>
+            </div>
+          </div>
+          <hr style="border-color:#f1f5f9;">
+        </div>
+
+        <!-- شريط البحث -->
+        <div class="row g-2 mb-3 no-print align-items-end">
+          <div class="col-md-4">
+            <label class="form-label">بحث</label>
+            <input id="searchInput" class="form-control" placeholder="🔍 اسم أو تصنيف..." oninput="filterMaterials()">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">التصنيف</label>
+            <select id="filterCat" class="form-select" onchange="filterMaterials()">
+              <option value="">الكل</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">المخزون</label>
+            <select id="filterStock" class="form-select" onchange="filterMaterials()">
+              <option value="">الكل</option>
+              <option value="low">ناقصة ⚠️</option>
+            </select>
+          </div>
+          <div class="col-md-3 d-flex gap-2">
+            <button onclick="exportExcel()" class="btn btn-success btn-sm flex-fill">📥 Excel</button>
+            <button onclick="exportPDF()" class="btn btn-danger btn-sm flex-fill">📄 PDF</button>
+            <button onclick="loadMaterials()" class="btn btn-outline-secondary btn-sm">🔄</button>
+          </div>
+        </div>
+
+        <div id="matCount" class="text-muted mb-2" style="font-size:0.8rem;"></div>
+
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>المادة</th>
+                <th>التصنيف</th>
+                <th>الكمية</th>
+                <th>الوحدة</th>
+                <th>حد التنبيه</th>
+                <th>بواسطة</th>
+                <th>التاريخ</th>
+                <th class="no-print" id="actHead">إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="matList"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== المستخدمون ===================== -->
+    <div id="page-users" class="page">
+      <div class="card-box">
+        <div class="card-title">👥 إدارة المستخدمين</div>
+
+        <div class="row g-2 mb-4 no-print align-items-end">
+          <div class="col-md-3">
+            <label class="form-label">اسم المستخدم *</label>
+            <input id="nu" class="form-control" placeholder="username">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">الاسم الكامل *</label>
+            <input id="nf" class="form-control" placeholder="الاسم الكامل">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">كلمة المرور *</label>
+            <input id="np" class="form-control" type="password" placeholder="••••••">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">الدور</label>
+            <select id="nr" class="form-select">
+              <option value="employee">موظف</option>
+              <option value="supervisor">مشرف</option>
+              <option value="admin">أدمن</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <button onclick="createUser()" class="btn btn-success w-100">+ إضافة</button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr><th>الاسم</th><th>المستخدم</th><th>الدور</th><th>التاريخ</th><th class="no-print">إجراءات</th></tr>
+            </thead>
+            <tbody id="userList"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== سجل العمليات ===================== -->
+    <div id="page-audit" class="page">
+      <div class="card-box">
+        <div class="card-title">📋 سجل العمليات</div>
+
+        <div class="row g-2 mb-3 no-print">
+          <div class="col-md-4">
+            <input id="auditQ" class="form-control" placeholder="🔍 بحث..." oninput="filterAudit()">
+          </div>
+          <div class="col-md-3">
+            <select id="auditF" class="form-select" onchange="filterAudit()">
+              <option value="">كل العمليات</option>
+              <option value="ADD_MATERIAL">إضافة مادة</option>
+              <option value="EDIT_MATERIAL">تعديل مادة</option>
+              <option value="DELETE_MATERIAL">حذف مادة</option>
+              <option value="ADD_USER">إضافة مستخدم</option>
+              <option value="DELETE_USER">حذف مستخدم</option>
+              <option value="CHANGE_ROLE">تغيير دور</option>
+              <option value="LOGIN">تسجيل دخول</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <button onclick="loadAudit()" class="btn btn-outline-secondary btn-sm w-100">🔄 تحديث</button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table">
+            <thead><tr><th>الوقت</th><th>المستخدم</th><th>العملية</th><th>التفاصيل</th></tr></thead>
+            <tbody id="auditList"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== مخزن المواد الخام ===================== -->
+    <div id="page-raw" class="page">
+      <div class="card-box mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="card-title mb-0">🌾 مخزن المواد الخام — تعريف المواد</div>
+          <div class="d-flex gap-2">
+            <button onclick="exportWarehouseExcel('raw')" class="btn btn-sm btn-outline-success">📥 Excel</button>
+            <button onclick="window.print()" class="btn btn-sm btn-outline-secondary">🖨️ PDF</button>
+          </div>
+        </div>
+        <div class="row g-2">
+          <div class="col-md-3"><input id="rawItemName" class="form-control" list="dl-raw-items" placeholder="اسم المادة عربي (دقيق، سمن...)"></div>
+          <div class="col-md-3"><input id="rawItemNameEn" class="form-control" placeholder="English Name (Flour, Butter...)"></div>
+          <div class="col-md-2"><input id="rawItemUnit" class="form-control" list="dl-units" placeholder="الوحدة (كيلو، ليتر...)"></div>
+          <div class="col-md-1"><input id="rawItemMin" class="form-control" type="number" placeholder="حد أدنى"></div>
+          <div class="col-md-2"><button onclick="addWarehouseItem('raw')" class="btn btn-primary w-100">➕ إضافة</button></div>
+        </div>
+      </div>
+      <div class="card-box mb-3">
+        <div class="card-title">📦 الباتشات النشطة</div>
+        <div class="row g-2 mb-2">
+          <div class="col-md-3"><input id="rawSearch" class="form-control" placeholder="🔍 بحث..." oninput="loadBatches('raw')"></div>
+          <div class="col-md-2">
+            <select id="rawStatusF" class="form-select" onchange="loadBatches('raw')">
+              <option value="active">نشط</option><option value="depleted">نفذ</option><option value="">الكل</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <select id="rawExpiryF" class="form-select" onchange="loadBatches('raw')">
+              <option value="">كل الصلاحيات</option>
+              <option value="7">ينتهي خلال 7 أيام</option>
+              <option value="30">ينتهي خلال 30 يوم</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm">
+            <thead><tr><th>رقم الباتش</th><th>المادة</th><th>الكمية الأصلية</th><th>المتبقي</th><th>المورد</th><th>باتش المورد</th><th>تاريخ الإنتاج</th><th>تاريخ الانتهاء</th><th>الحالة</th></tr></thead>
+            <tbody id="rawBatchList"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card-box">
+        <div class="card-title">📋 المواد المعرّفة في مخزن الخام</div>
+        <div class="table-responsive">
+          <table class="table table-sm">
+            <thead><tr><th>الاسم العربي</th><th>الاسم الإنجليزي</th><th>الوحدة</th><th>الحد الأدنى</th><th></th></tr></thead>
+            <tbody id="rawItemsList"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== مخزن التعبئة ===================== -->
+    <div id="page-packaging" class="page">
+      <div class="card-box mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="card-title mb-0">🗃️ مخزن التعبئة — تعريف المواد</div>
+          <div class="d-flex gap-2">
+            <button onclick="exportWarehouseExcel('packaging')" class="btn btn-sm btn-outline-success">📥 Excel</button>
+            <button onclick="window.print()" class="btn btn-sm btn-outline-secondary">🖨️ PDF</button>
+          </div>
+        </div>
+        <div class="row g-2">
+          <div class="col-md-3"><input id="pkgItemName" class="form-control" list="dl-pkg-items" placeholder="اسم المادة عربي (كرتون، علبة...)"></div>
+          <div class="col-md-3"><input id="pkgItemNameEn" class="form-control" placeholder="English Name (Box, Carton...)"></div>
+          <div class="col-md-2"><input id="pkgItemUnit" class="form-control" list="dl-units" placeholder="الوحدة (حبة، رول...)"></div>
+          <div class="col-md-1"><input id="pkgItemMin" class="form-control" type="number" placeholder="حد أدنى"></div>
+          <div class="col-md-2"><button onclick="addWarehouseItem('packaging')" class="btn btn-primary w-100">➕ إضافة</button></div>
+        </div>
+      </div>
+      <div class="card-box mb-3">
+        <div class="card-title">📦 الباتشات النشطة</div>
+        <div class="row g-2 mb-2">
+          <div class="col-md-3"><input id="pkgSearch" class="form-control" placeholder="🔍 بحث..." oninput="loadBatches('packaging')"></div>
+          <div class="col-md-2">
+            <select id="pkgStatusF" class="form-select" onchange="loadBatches('packaging')">
+              <option value="active">نشط</option><option value="depleted">نفذ</option><option value="">الكل</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm">
+            <thead><tr><th>رقم الباتش</th><th>المادة</th><th>الكمية الأصلية</th><th>المتبقي</th><th>المورد</th><th>باتش المورد</th><th>تاريخ الإنتاج</th><th>تاريخ الانتهاء</th><th>الحالة</th></tr></thead>
+            <tbody id="pkgBatchList"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card-box">
+        <div class="card-title">📋 المواد المعرّفة في مخزن التعبئة</div>
+        <div class="table-responsive">
+          <table class="table table-sm">
+            <thead><tr><th>الاسم العربي</th><th>الاسم الإنجليزي</th><th>الوحدة</th><th>الحد الأدنى</th><th></th></tr></thead>
+            <tbody id="pkgItemsList"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== المنتج النهائي ===================== -->
+    <div id="page-finished" class="page">
+      <div class="card-box mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="card-title mb-0">🍬 مخزن المنتج النهائي — تعريف المنتجات</div>
+          <div class="d-flex gap-2">
+            <button onclick="exportWarehouseExcel('finished')" class="btn btn-sm btn-outline-success">📥 Excel</button>
+            <button onclick="window.print()" class="btn btn-sm btn-outline-secondary">🖨️ PDF</button>
+          </div>
+        </div>
+        <div class="row g-2">
+          <div class="col-md-3"><input id="finItemName" class="form-control" list="dl-fin-items" placeholder="اسم المنتج عربي (بقلاوة مشكلة...)"></div>
+          <div class="col-md-3"><input id="finItemNameEn" class="form-control" placeholder="English Name (Mixed Baklawa...)"></div>
+          <div class="col-md-2"><input id="finItemUnit" class="form-control" list="dl-units" placeholder="الوحدة (كيلو، علبة...)"></div>
+          <div class="col-md-1"><input id="finItemMin" class="form-control" type="number" placeholder="حد أدنى"></div>
+          <div class="col-md-2"><button onclick="addWarehouseItem('finished')" class="btn btn-primary w-100">➕ إضافة</button></div>
+        </div>
+      </div>
+      <div class="card-box mb-3">
+        <div class="card-title">📦 الباتشات النشطة</div>
+        <div class="row g-2 mb-2">
+          <div class="col-md-3"><input id="finSearch" class="form-control" placeholder="🔍 بحث..." oninput="loadBatches('finished')"></div>
+          <div class="col-md-2">
+            <select id="finStatusF" class="form-select" onchange="loadBatches('finished')">
+              <option value="active">نشط</option><option value="depleted">نفذ</option><option value="">الكل</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm">
+            <thead><tr><th>رقم الباتش</th><th>المنتج</th><th>الكمية الأصلية</th><th>المتبقي</th><th>تاريخ الإنتاج</th><th>تاريخ الانتهاء</th><th>الحالة</th></tr></thead>
+            <tbody id="finBatchList"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card-box">
+        <div class="card-title">📋 المنتجات المعرّفة</div>
+        <div class="table-responsive">
+          <table class="table table-sm">
+            <thead><tr><th>الاسم العربي</th><th>الاسم الإنجليزي</th><th>الوحدة</th><th>الحد الأدنى</th><th></th></tr></thead>
+            <tbody id="finItemsList"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== الاستلام ===================== -->
+    <div id="page-receiving" class="page">
+      <div class="card-box mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="card-title mb-0">📥 استلام شحنة جديدة</div>
+          <div class="d-flex gap-2">
+            <button onclick="exportReceivingExcel()" class="btn btn-sm btn-outline-success">📥 Excel</button>
+            <button onclick="window.print()" class="btn btn-sm btn-outline-secondary">🖨️ PDF</button>
+          </div>
+        </div>
+        <div class="row g-2">
+          <div class="col-md-3">
+            <label class="form-label fw-bold">نوع المخزن</label>
+            <select id="recWH" class="form-select" onchange="loadItemsForReceiving()">
+              <option value="raw">مواد خام</option>
+              <option value="packaging">مواد تعبئة</option>
+              <option value="finished">منتج نهائي</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-bold">المادة (اختر أو اكتب)</label>
+            <input id="recItemInput" class="form-control" list="dl-rec-items"
+                   placeholder="اسم المادة..." autocomplete="off">
+            <datalist id="dl-rec-items"></datalist>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-bold">الكمية</label>
+            <input id="recQty" class="form-control" type="number" placeholder="0">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-bold">تاريخ الاستلام</label>
+            <input id="recDate" class="form-control" type="date">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-bold">اسم المورد</label>
+            <input id="recSupplier" class="form-control" placeholder="اسم المورد">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-bold">باتش المورد</label>
+            <input id="recSupBatch" class="form-control" placeholder="رقم باتش المورد">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-bold">تاريخ الإنتاج</label>
+            <input id="recProdDate" class="form-control" type="date">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-bold">تاريخ الانتهاء</label>
+            <input id="recExpDate" class="form-control" type="date">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-bold">ملاحظات</label>
+            <input id="recNotes" class="form-control" placeholder="ملاحظات اختيارية">
+          </div>
+          <div class="col-md-2 d-flex align-items-end">
+            <button onclick="submitReceiving()" class="btn btn-success w-100">✅ تأكيد الاستلام</button>
+          </div>
+        </div>
+        <div id="recResult" class="mt-3" style="display:none"></div>
+      </div>
+      <div class="card-box">
+        <div class="card-title">📋 آخر الشحنات المستلمة</div>
+        <div class="table-responsive">
+          <table class="table table-sm">
+            <thead><tr><th>رقم الباتش</th><th>المادة</th><th>المخزن</th><th>الكمية</th><th>المورد</th><th>باتش المورد</th><th>تاريخ الاستلام</th><th>تاريخ الانتهاء</th><th>المستلِم</th></tr></thead>
+            <tbody id="receivingList"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== الصرف ===================== -->
+    <div id="page-issuance" class="page">
+      <div class="card-box mb-3">
+        <div class="card-title">📤 صرف من المخزن</div>
+        <div class="row g-2">
+          <div class="col-md-3">
+            <label class="form-label fw-bold">نوع المخزن</label>
+            <select id="issWH" class="form-select" onchange="loadBatchesForIssuance()">
+              <option value="raw">مواد خام</option>
+              <option value="packaging">مواد تعبئة</option>
+              <option value="finished">منتج نهائي</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-bold">الباتش (FEFO — الأقرب للانتهاء أولاً)</label>
+            <select id="issBatch" class="form-select"></select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-bold">الكمية</label>
+            <input id="issQty" class="form-control" type="number" placeholder="0">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-bold">الغرض</label>
+            <select id="issPurpose" class="form-select">
+              <option value="production">إنتاج</option>
+              <option value="sales">مبيعات</option>
+              <option value="other">أخرى</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-bold">ملاحظات</label>
+            <input id="issNotes" class="form-control" placeholder="ملاحظات اختيارية">
+          </div>
+          <div class="col-md-2 d-flex align-items-end">
+            <button onclick="submitIssuance()" class="btn btn-warning w-100">📤 تأكيد الصرف</button>
+          </div>
+        </div>
+        <div id="issResult" class="mt-3" style="display:none"></div>
+      </div>
+      <div class="card-box">
+        <div class="card-title">📋 آخر عمليات الصرف</div>
+        <div class="row g-2 mb-2">
+          <div class="col-md-3">
+            <select id="issFilterWH" class="form-select" onchange="loadIssuanceRecords()">
+              <option value="">كل المخازن</option>
+              <option value="raw">مواد خام</option>
+              <option value="packaging">مواد تعبئة</option>
+              <option value="finished">منتج نهائي</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm">
+            <thead><tr><th>رقم الباتش</th><th>المادة</th><th>المخزن</th><th>الكمية المصروفة</th><th>الغرض</th><th>المصروف بواسطة</th><th>الوقت</th></tr></thead>
+            <tbody id="issuanceList"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== ربط الإنتاج ===================== -->
+    <div id="page-production" class="page">
+      <div class="card-box mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="card-title mb-0">🏭 ربط الإنتاج — ربط المنتج النهائي بالخامات المستخدمة</div>
+          <button onclick="exportProductionExcel()" class="btn btn-sm btn-outline-success">📥 Excel</button>
+        </div>
+        <div class="row g-2 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label fw-bold">باتش المنتج النهائي</label>
+            <select id="prodFinBatch" class="form-select" onchange="loadLinksForBatch()">
+              <option value="">— اختر باتش المنتج النهائي —</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-bold">نوع المادة الخام</label>
+            <select id="prodRawWH" class="form-select" onchange="loadRawBatchesForProduction()">
+              <option value="raw">مواد خام</option>
+              <option value="packaging">مواد تعبئة</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-bold">باتش الخامة</label>
+            <select id="prodRawBatch" class="form-select"></select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-bold">الكمية المستخدمة</label>
+            <input id="prodQty" class="form-control" type="number" placeholder="0">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-bold">ملاحظات</label>
+            <input id="prodNotes" class="form-control" placeholder="اختياري">
+          </div>
+          <div class="col-md-2 d-flex align-items-end">
+            <button onclick="submitProductionLink()" class="btn btn-primary w-100">🔗 ربط</button>
+          </div>
+        </div>
+      </div>
+      <div class="card-box">
+        <div class="card-title">📋 الخامات المرتبطة بالباتش المختار</div>
+        <div class="table-responsive">
+          <table class="table table-sm">
+            <thead><tr><th>المنتج النهائي</th><th>الخامة / المادة</th><th>نوع المخزن</th><th>باتش الخامة</th><th>الكمية المستخدمة</th><th>بواسطة</th><th>الوقت</th><th></th></tr></thead>
+            <tbody id="productionLinksList"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== التوزيع للفروع ===================== -->
+    <div id="page-distribution" class="page">
+      <div class="card-box mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="card-title mb-0">🚚 توزيع المنتج النهائي على الفروع</div>
+          <button onclick="exportDistributionExcel()" class="btn btn-sm btn-outline-success">📥 Excel</button>
+        </div>
+        <div class="row g-2 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label fw-bold">باتش المنتج النهائي</label>
+            <select id="distBatch" class="form-select" onchange="showDistBatchInfo()">
+              <option value="">— اختر الباتش —</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-bold">الكمية المتاحة</label>
+            <input id="distAvailable" class="form-control" readonly placeholder="—" style="background:#f8fafc">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-bold">الفرع</label>
+            <select id="distBranch" class="form-select"></select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-bold">الكمية للفرع</label>
+            <input id="distQty" class="form-control" type="number" placeholder="0">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-bold">ملاحظات</label>
+            <input id="distNotes" class="form-control" placeholder="اختياري">
+          </div>
+          <div class="col-md-2 d-flex align-items-end">
+            <button onclick="submitDistribution()" class="btn btn-warning w-100">🚚 توزيع</button>
+          </div>
+        </div>
+        <div id="distResult" class="mt-3" style="display:none"></div>
+      </div>
+      <div class="card-box">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="card-title mb-0">📋 سجل التوزيعات</div>
+        </div>
+        <div class="row g-2 mb-2">
+          <div class="col-md-3">
+            <select id="distFilterBranch" class="form-select" onchange="loadDistributions()">
+              <option value="">كل الفروع</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm">
+            <thead><tr><th>رقم الباتش</th><th>المنتج</th><th>الفرع</th><th>الكمية</th><th>الوحدة</th><th>تاريخ التوزيع</th><th>بواسطة</th><th>ملاحظات</th></tr></thead>
+            <tbody id="distributionList"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== إدارة الفروع ===================== -->
+    <div id="page-branches" class="page">
+      <div class="card-box mb-3">
+        <div class="card-title">🏪 إضافة فرع جديد</div>
+        <div class="row g-2">
+          <div class="col-md-4"><input id="branchName" class="form-control" placeholder="اسم الفرع"></div>
+          <div class="col-md-4"><input id="branchLocation" class="form-control" placeholder="الموقع / العنوان"></div>
+          <div class="col-md-2"><button onclick="addBranch()" class="btn btn-primary w-100">➕ إضافة</button></div>
+        </div>
+      </div>
+      <div class="card-box">
+        <div class="card-title">📋 الفروع الحالية</div>
+        <div class="table-responsive">
+          <table class="table table-sm">
+            <thead><tr><th>#</th><th>اسم الفرع</th><th>الموقع</th><th>تاريخ الإضافة</th><th></th></tr></thead>
+            <tbody id="branchesList"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== التتبع ===================== -->
+    <div id="page-traceability" class="page">
+      <div class="card-box mb-3">
+        <div class="card-title">🔍 البحث بالباتش</div>
+        <div class="row g-2 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label fw-bold">رقم الباتش (مثال: R00001 أو F00003)</label>
+            <input id="traceInput" class="form-control" placeholder="أدخل رقم الباتش..." onkeydown="if(event.key==='Enter')traceSearch()">
+          </div>
+          <div class="col-md-2">
+            <button onclick="traceSearch()" class="btn btn-primary w-100">🔍 تتبع</button>
+          </div>
+          <div class="col-md-2">
+            <button onclick="exportTraceExcel()" class="btn btn-outline-success w-100">📥 Excel</button>
+          </div>
+        </div>
+      </div>
+      <div id="traceResult" style="display:none">
+        <!-- معلومات الباتش -->
+        <div class="card-box mb-3">
+          <div class="card-title">📦 معلومات الباتش</div>
+          <div id="traceBatchInfo"></div>
+        </div>
+        <!-- التتبع العكسي -->
+        <div class="card-box mb-3" id="traceBackwardCard" style="display:none">
+          <div class="card-title">⬅️ التتبع العكسي — صُنع هذا المنتج من:</div>
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead><tr><th>باتش الخامة</th><th>المادة</th><th>نوع المخزن</th><th>الكمية المستخدمة</th><th>تاريخ الربط</th></tr></thead>
+              <tbody id="traceBackwardList"></tbody>
+            </table>
+          </div>
+        </div>
+        <!-- التتبع الأمامي -->
+        <div class="card-box mb-3" id="traceForwardCard">
+          <div class="card-title">➡️ التتبع الأمامي</div>
+          <div id="traceForwardContent"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== التقارير ===================== -->
+    <div id="page-reports" class="page">
+      <div class="card-box mb-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div class="card-title mb-0">📊 تقارير المخزون الشاملة</div>
+          <div class="d-flex gap-2">
+            <button onclick="exportAllReportsExcel()" class="btn btn-sm btn-outline-success">📥 تصدير Excel</button>
+            <button onclick="window.print()" class="btn btn-sm btn-outline-secondary">🖨️ طباعة / PDF</button>
+          </div>
+        </div>
+      </div>
+      <!-- ملخص عام -->
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <div class="card-box text-center">
+            <div style="font-size:2rem">🌾</div>
+            <div class="fw-bold fs-5 mt-1">مخزن الخام</div>
+            <div id="rpt-raw-batches" class="fs-3 fw-bold text-primary">—</div>
+            <div class="text-muted small">باتش نشط</div>
+            <div id="rpt-raw-exp" class="text-danger small mt-1"></div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card-box text-center">
+            <div style="font-size:2rem">🗃️</div>
+            <div class="fw-bold fs-5 mt-1">مخزن التعبئة</div>
+            <div id="rpt-pkg-batches" class="fs-3 fw-bold text-primary">—</div>
+            <div class="text-muted small">باتش نشط</div>
+            <div id="rpt-pkg-exp" class="text-danger small mt-1"></div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card-box text-center">
+            <div style="font-size:2rem">🍬</div>
+            <div class="fw-bold fs-5 mt-1">المنتج النهائي</div>
+            <div id="rpt-fin-batches" class="fs-3 fw-bold text-primary">—</div>
+            <div class="text-muted small">باتش نشط</div>
+            <div id="rpt-fin-exp" class="text-danger small mt-1"></div>
+          </div>
+        </div>
+      </div>
+      <!-- تقرير مفصّل لكل مخزن -->
+      <div class="card-box mb-3">
+        <div class="card-title">📋 تقرير مخزن الخام</div>
+        <div class="table-responsive">
+          <table class="table table-sm" id="rptRawTable">
+            <thead><tr><th>المادة</th><th>الوحدة</th><th>إجمالي المتبقي</th><th>عدد الباتشات</th><th>ينتهي خلال 7 أيام</th><th>ينتهي خلال 30 يوم</th></tr></thead>
+            <tbody id="rptRawBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card-box mb-3">
+        <div class="card-title">📋 تقرير مخزن التعبئة</div>
+        <div class="table-responsive">
+          <table class="table table-sm" id="rptPkgTable">
+            <thead><tr><th>المادة</th><th>الوحدة</th><th>إجمالي المتبقي</th><th>عدد الباتشات</th><th>ينتهي خلال 7 أيام</th><th>ينتهي خلال 30 يوم</th></tr></thead>
+            <tbody id="rptPkgBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card-box">
+        <div class="card-title">📋 تقرير مخزن المنتج النهائي</div>
+        <div class="table-responsive">
+          <table class="table table-sm" id="rptFinTable">
+            <thead><tr><th>المنتج</th><th>الوحدة</th><th>إجمالي المتبقي</th><th>عدد الباتشات</th><th>ينتهي خلال 7 أيام</th><th>ينتهي خلال 30 يوم</th></tr></thead>
+            <tbody id="rptFinBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end content -->
+</div><!-- end main -->
+
+<!-- Toast Stack -->
+<div id="toastStack"></div>
+
+<!-- ========== Modal: تعديل الحساب ========== -->
+<div id="profileModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9000; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:20px; padding:32px; width:100%; max-width:420px; box-shadow:0 24px 60px rgba(0,0,0,0.25); animation: cardIn 0.3s ease both; margin:20px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
+      <h5 style="font-weight:800; color:#0f172a; margin:0;">⚙️ إعدادات الحساب</h5>
+      <button onclick="closeProfile()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:#94a3b8;">✕</button>
+    </div>
+
+    <!-- تغيير الاسم -->
+    <div style="margin-bottom:24px; padding-bottom:24px; border-bottom:1px solid #f1f5f9;">
+      <div style="font-size:0.82rem; font-weight:700; color:#64748b; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.05em;">تغيير الاسم</div>
+      <label class="form-label">الاسم الكامل</label>
+      <input id="newFullNameMe" class="form-control mb-2" placeholder="أدخل الاسم الجديد">
+      <button onclick="updateName()" class="btn btn-primary btn-sm w-100">حفظ الاسم</button>
+    </div>
+
+    <!-- تغيير كلمة المرور -->
+    <div>
+      <div style="font-size:0.82rem; font-weight:700; color:#64748b; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.05em;">تغيير كلمة المرور</div>
+      <label class="form-label">كلمة المرور الحالية</label>
+      <input id="oldPwd" class="form-control mb-2" type="password" placeholder="••••••">
+      <label class="form-label">كلمة المرور الجديدة</label>
+      <input id="newPwd" class="form-control mb-2" type="password" placeholder="••••••">
+      <label class="form-label">تأكيد كلمة المرور الجديدة</label>
+      <input id="confirmPwd" class="form-control mb-3" type="password" placeholder="••••••">
+      <button onclick="updatePassword()" class="btn btn-primary btn-sm w-100">تغيير كلمة المرور</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API = "";
+  let CU = null; // current user
+  let allMat = [], allAudit = [];
+  let barCh = null, pieCh = null;
+
+  const pageTitles = {
+    stats: 'الإحصائيات <small>نظرة عامة على المخزون</small>',
+    materials: 'إدارة المواد <small>المخزون والكميات</small>',
+    users: 'المستخدمون <small>إدارة الحسابات والأدوار</small>',
+    audit: 'سجل العمليات <small>تاريخ كامل للتعديلات</small>',
+    raw: 'مخزن المواد الخام <small>الباتشات والأرصدة</small>',
+    packaging: 'مخزن التعبئة <small>الباتشات والأرصدة</small>',
+    finished: 'المنتج النهائي <small>الباتشات والأرصدة</small>',
+    receiving: 'استلام شحنة <small>تسجيل شحنة جديدة</small>',
+    issuance: 'الصرف من المخزن <small>صرف مواد من الباتشات</small>',
+    production: 'ربط الإنتاج <small>ربط المنتجات بالخامات المستخدمة</small>',
+    distribution: 'التوزيع للفروع <small>توزيع المنتجات على الفروع</small>',
+    branches: 'إدارة الفروع <small>إضافة وإدارة الفروع</small>',
+    traceability: 'التتبع <small>تتبع الباتشات أماماً وعكساً</small>',
+    reports: 'التقارير <small>تقارير المخزون التفصيلية</small>',
+  };
+
+  // ===== Toast =====
+  function toast(msg, type='info') {
+    const icons = { success:'✅', error:'❌', warn:'⚠️', info:'ℹ️' };
+    const el = document.createElement('div');
+    el.className = `toast-item t-${type}`;
+    el.innerHTML = `<span>${icons[type]||'ℹ️'}</span><span>${msg}</span>`;
+    document.getElementById('toastStack').appendChild(el);
+    setTimeout(() => el.remove(), 3500);
+  }
+
+  function T() { return localStorage.getItem('token'); }
+  function AH() { return { 'Content-Type':'application/json', 'Authorization':`Bearer ${T()}` }; }
+  function BH() { return { 'Authorization':`Bearer ${T()}` }; }
+
+  // ===== Init =====
+  async function init() {
+    if (!T()) { window.location.href = '/'; return; }
+    try {
+      const r = await fetch(`${API}/auth/me`, { headers: BH() });
+      if (!r.ok) throw new Error();
+      CU = await r.json();
+    } catch { localStorage.clear(); window.location.href='/'; return; }
+
+    const rl = { admin:'أدمن', supervisor:'مشرف', employee:'موظف' };
+    const rp = { admin:'pill-rose', supervisor:'pill-indigo', employee:'pill-green' };
+    document.getElementById('userFullName').textContent = CU.full_name;
+    document.getElementById('userRoleLbl').textContent = rl[CU.role];
+    document.getElementById('userAvatar').textContent = CU.full_name?.[0] || '?';
+
+    if (CU.role === 'employee') {
+      document.getElementById('addForm').style.display = 'none';
+      document.getElementById('actHead').style.display = 'none';
+    }
+    if (CU.role === 'admin') {
+      ['nb-users','nb-audit'].forEach(id => document.getElementById(id).style.display='flex');
+      document.getElementById('adminLabel').style.display = 'block';
+    }
+
+    await loadStats();
+    await loadMaterials();
+    await loadCategories();
+  }
+
+  // ===== Navigation =====
+  function showPage(name, btn) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`page-${name}`).classList.add('active');
+    (btn || document.getElementById(`nb-${name}`)).classList.add('active');
+    document.getElementById('pageTitle').innerHTML = pageTitles[name] || name;
+    if (name==='users') loadUsers();
+    if (name==='audit') loadAudit();
+    if (name==='stats') loadStats();
+    if (name==='raw')         { loadWarehouseItems('raw'); loadBatches('raw'); }
+    if (name==='packaging')   { loadWarehouseItems('packaging'); loadBatches('packaging'); }
+    if (name==='finished')    { loadWarehouseItems('finished'); loadBatches('finished'); }
+    if (name==='receiving')   { loadItemsForReceiving(); loadRecentBatches(); }
+    if (name==='issuance')    { loadBatchesForIssuance(); loadIssuanceRecords(); }
+    if (name==='production')  { loadFinishedBatchesForProduction(); loadProductionLinks(); }
+    if (name==='distribution'){ loadFinishedBatchesForDist(); loadDistributions(); }
+    if (name==='branches')    { loadBranchesPage(); }
+    if (name==='traceability'){ /* user searches manually */ }
+    if (name==='reports')     { loadReports(); }
+  }
+
+  function logout() { localStorage.clear(); window.location.href='/'; }
+
+  // ===== Stats =====
+  async function loadStats() {
+    const r = await fetch(`${API}/materials/stats/`, { headers: BH() });
+    const d = await r.json();
+
+    document.getElementById('st-total').textContent = d.total_materials;
+    document.getElementById('st-qty').textContent = Math.round(d.total_quantity).toLocaleString('ar');
+    document.getElementById('st-low').textContent = d.low_stock_count;
+    document.getElementById('st-users').textContent = d.users_count;
+
+    if (d.low_stock_count > 0) {
+      document.getElementById('lowBanner').style.display = 'flex';
+      document.getElementById('lowBannerText').textContent = `يوجد ${d.low_stock_count} مادة بمخزون أقل من الحد المطلوب`;
+      document.getElementById('lowBadge').style.display = 'inline-block';
+      document.getElementById('lowBadge').textContent = d.low_stock_count;
+    } else {
+      document.getElementById('lowBanner').style.display = 'none';
+      document.getElementById('lowBadge').style.display = 'none';
+    }
+
+    const cats = Object.keys(d.by_category);
+    const qtys = cats.map(c => d.by_category[c].total_qty);
+    const cnts = cats.map(c => d.by_category[c].count);
+    const COLORS = ['#6366f1','#10b981','#f59e0b','#f43f5e','#8b5cf6','#06b6d4','#84cc16','#f97316'];
+
+    if (barCh) barCh.destroy();
+    barCh = new Chart(document.getElementById('barChart'), {
+      type: 'bar',
+      data: { labels: cats, datasets: [{ label:'الكمية', data: qtys, backgroundColor: COLORS, borderRadius:8, borderSkipped:false }] },
+      options: { plugins:{ legend:{display:false} }, scales:{ y:{beginAtZero:true, grid:{color:'#f1f5f9'} }, x:{grid:{display:false}} }, responsive:true }
+    });
+
+    if (pieCh) pieCh.destroy();
+    pieCh = new Chart(document.getElementById('pieChart'), {
+      type: 'doughnut',
+      data: { labels: cats, datasets:[{ data:cnts, backgroundColor:COLORS, borderWidth:3, borderColor:'#fff' }] },
+      options: { plugins:{ legend:{ position:'bottom', labels:{ font:{family:'Tajawal',size:12}, padding:14 } } }, cutout:'60%', responsive:true }
+    });
+  }
+
+  function showLowStock() {
+    document.getElementById('filterStock').value = 'low';
+    showPage('materials');
+    filterMaterials();
+  }
+
+  // ===== Materials =====
+  async function loadMaterials() {
+    const r = await fetch(`${API}/materials/`, { headers: BH() });
+    allMat = await r.json();
+    renderMat(allMat);
+  }
+
+  async function loadCategories() {
+    const r = await fetch(`${API}/materials/categories/`, { headers: BH() });
+    const cats = await r.json();
+    document.getElementById('catList').innerHTML = cats.map(c=>`<option value="${c}">`).join('');
+    const sel = document.getElementById('filterCat');
+    sel.innerHTML = `<option value="">الكل</option>` + cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+  }
+
+  function filterMaterials() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    const cat = document.getElementById('filterCat').value;
+    const st = document.getElementById('filterStock').value;
+    renderMat(allMat.filter(m =>
+      (!q || [m.name_ar,m.name_en,m.category].some(v=>v?.toLowerCase().includes(q))) &&
+      (!cat || m.category===cat) &&
+      (st!=='low' || (m.quantity<=m.min_quantity && m.min_quantity>0))
+    ));
+  }
+
+  function renderMat(data) {
+    const ce = ['admin','supervisor'].includes(CU?.role);
+    const cd = CU?.role==='admin';
+    document.getElementById('matCount').textContent = `${data.length} نتيجة`;
+    document.getElementById('matList').innerHTML = data.map(m => {
+      const isLow = m.min_quantity>0 && m.quantity<=m.min_quantity;
+      return `<tr class="${isLow?'row-danger':''}">
+        <td><strong>${m.name_ar}</strong>${m.name_en?`<br><small class="text-muted">${m.name_en}</small>`:''}</td>
+        <td><span class="pill pill-slate">${m.category||'—'}</span></td>
+        <td><span class="pill ${isLow?'pill-rose':'pill-green'}">${m.quantity}${isLow?' ⚠️':''}</span></td>
+        <td><small class="text-muted">${m.unit||'وحدة'}</small></td>
+        <td><small class="text-muted">${m.min_quantity>0?m.min_quantity:'—'}</small></td>
+        <td><small class="text-muted">${m.created_by||'—'}</small></td>
+        <td><small class="text-muted">${m.created_at?m.created_at.substring(0,10):''}</small></td>
+        <td class="no-print">
+          ${ce?`<button onclick="editMat(${m.id})" class="btn btn-sm btn-outline-warning me-1">✏️ تعديل</button>`:''}
+          ${cd?`<button onclick="delMat(${m.id})" class="btn btn-sm btn-outline-danger">🗑️</button>`:''}
+          ${!ce&&!cd?'<span class="text-muted small">عرض فقط</span>':''}
+        </td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="8" class="text-center text-muted py-5">لا توجد نتائج</td></tr>`;
+  }
+
+  async function saveMaterial() {
+    const ar=document.getElementById('ar').value.trim(), en=document.getElementById('en').value.trim(),
+          cat=document.getElementById('cat').value.trim(), qty=document.getElementById('qty').value,
+          unit=document.getElementById('unit').value.trim()||'وحدة', minQty=document.getElementById('minQty').value||'0';
+    if (!ar||!qty) { toast('الاسم والكمية مطلوبان','warn'); return; }
+    const r = await fetch(`${API}/materials/?name_ar=${encodeURIComponent(ar)}&name_en=${encodeURIComponent(en)}&category=${encodeURIComponent(cat)}&quantity=${qty}&min_quantity=${minQty}&unit=${encodeURIComponent(unit)}`,
+      { method:'POST', headers:BH() });
+    if (!r.ok) { const d=await r.json(); toast(d.detail,'error'); return; }
+    toast(`تمت إضافة "${ar}" بنجاح`,'success');
+    ['ar','en','cat','qty','minQty'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('unit').value='وحدة';
+    await loadMaterials(); await loadCategories(); await loadStats();
+  }
+
+  async function editMat(id) {
+    const q = prompt('أدخل الكمية الجديدة:');
+    if (!q||isNaN(q)) return;
+    await fetch(`${API}/materials/${id}?quantity=${q}`, { method:'PUT', headers:BH() });
+    toast('تم تحديث الكمية','success');
+    await loadMaterials(); await loadStats();
+  }
+
+  async function delMat(id) {
+    if (!confirm('هل أنت متأكد من الحذف؟')) return;
+    await fetch(`${API}/materials/${id}`, { method:'DELETE', headers:BH() });
+    toast('تم الحذف','success');
+    await loadMaterials(); await loadStats();
+  }
+
+  // ===== Export =====
+  function exportExcel() {
+    const rows = allMat.map(m=>({
+      'الاسم (عربي)':m.name_ar, 'الاسم (إنجليزي)':m.name_en,
+      'التصنيف':m.category, 'الكمية':m.quantity,
+      'الوحدة':m.unit, 'حد التنبيه':m.min_quantity,
+      'أضيف بواسطة':m.created_by,
+      'التاريخ':m.created_at?m.created_at.substring(0,10):''
+    }));
+    const ws=XLSX.utils.json_to_sheet(rows), wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'المواد');
+    XLSX.writeFile(wb,`مخزون_${new Date().toISOString().substring(0,10)}.xlsx`);
+    toast('تم تصدير ملف Excel','success');
+  }
+  function exportPDF() { window.print(); }
+
+  // ===== Users =====
+  async function loadUsers() {
+    const r = await fetch(`${API}/users/`, { headers: BH() });
+    const data = await r.json();
+    const rl={admin:'أدمن',supervisor:'مشرف',employee:'موظف'};
+    const rp={admin:'pill-rose',supervisor:'pill-indigo',employee:'pill-green'};
+    document.getElementById('userList').innerHTML = data.map(u=>`
+      <tr>
+        <td><strong>${u.full_name}</strong></td>
+        <td><code style="background:#f1f5f9;padding:2px 7px;border-radius:6px;font-size:0.82rem;">${u.username}</code></td>
+        <td><span class="pill ${rp[u.role]||'pill-slate'}">${rl[u.role]||u.role}</span></td>
+        <td><small class="text-muted">${u.created_at?u.created_at.substring(0,10):''}</small></td>
+        <td class="no-print" style="white-space:nowrap;">
+          <button onclick="chRole(${u.id},'${u.role}')" class="btn btn-sm btn-outline-warning me-1">🔄 الدور</button>
+          <button onclick="chPwd(${u.id})" class="btn btn-sm btn-outline-secondary me-1">🔑</button>
+          <button onclick="delUser(${u.id})" class="btn btn-sm btn-outline-danger">🗑️</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  async function createUser() {
+    const u=document.getElementById('nu').value.trim(), f=document.getElementById('nf').value.trim(),
+          p=document.getElementById('np').value, ro=document.getElementById('nr').value;
+    if (!u||!p) { toast('اسم المستخدم وكلمة المرور مطلوبان','warn'); return; }
+    const r = await fetch(`${API}/users/`, { method:'POST', headers:AH(), body:JSON.stringify({username:u,full_name:f,password:p,role:ro}) });
+    const d = await r.json();
+    if (!r.ok) { toast(d.detail,'error'); return; }
+    toast(`تمت إضافة المستخدم "${u}"`,'success');
+    ['nu','nf','np'].forEach(id=>document.getElementById(id).value='');
+    loadUsers(); loadStats();
+  }
+
+  async function chRole(id,curr) {
+    const m={'1':'employee','2':'supervisor','3':'admin'};
+    const rl={admin:'أدمن',supervisor:'مشرف',employee:'موظف'};
+    const c=prompt(`الدور الحالي: ${rl[curr]}\n\n1 = موظف\n2 = مشرف\n3 = أدمن`);
+    if (!m[c]) return;
+    await fetch(`${API}/users/${id}/role`,{method:'PUT',headers:AH(),body:JSON.stringify({role:m[c]})});
+    toast('تم تحديث الدور','success'); loadUsers();
+  }
+
+  async function chPwd(id) {
+    const p=prompt('أدخل كلمة المرور الجديدة:');
+    if (!p) return;
+    await fetch(`${API}/users/${id}/password`,{method:'PUT',headers:AH(),body:JSON.stringify({new_password:p})});
+    toast('تم تحديث كلمة المرور','success');
+  }
+
+  async function delUser(id) {
+    if (!confirm('هل أنت متأكد؟')) return;
+    const r=await fetch(`${API}/users/${id}`,{method:'DELETE',headers:BH()});
+    const d=await r.json();
+    if (!r.ok){toast(d.detail,'error');return;}
+    toast('تم حذف المستخدم','success'); loadUsers(); loadStats();
+  }
+
+  // ===== Audit =====
+  async function loadAudit() {
+    const r = await fetch(`${API}/audit/`, { headers: BH() });
+    allAudit = await r.json(); renderAudit(allAudit);
+  }
+
+  function filterAudit() {
+    const q=document.getElementById('auditQ').value.toLowerCase();
+    const f=document.getElementById('auditF').value;
+    renderAudit(allAudit.filter(l=>
+      (!q||l.details?.toLowerCase().includes(q)||l.username?.toLowerCase().includes(q))&&
+      (!f||l.action===f)
+    ));
+  }
+
+  function renderAudit(logs) {
+    const al={ADD_MATERIAL:'إضافة مادة',EDIT_MATERIAL:'تعديل مادة',DELETE_MATERIAL:'حذف مادة',
+              ADD_USER:'إضافة مستخدم',DELETE_USER:'حذف مستخدم',CHANGE_ROLE:'تغيير دور',
+              CHANGE_PASSWORD:'تغيير كلمة مرور',LOGIN:'تسجيل دخول'};
+    document.getElementById('auditList').innerHTML = logs.map(l=>`
+      <tr>
+        <td><small class="text-muted">${l.timestamp?l.timestamp.replace('T',' ').substring(0,16):''}</small></td>
+        <td><strong>${l.full_name||l.username}</strong><br><small class="text-muted">${l.username}</small></td>
+        <td><span class="ab ab-${l.action}">${al[l.action]||l.action}</span></td>
+        <td><small>${l.details||''}</small></td>
+      </tr>`).join('') || `<tr><td colspan="4" class="text-center text-muted py-5">لا توجد سجلات</td></tr>`;
+  }
+
+  // ===== إعدادات الحساب =====
+  function openProfile() {
+    document.getElementById('newFullNameMe').value = CU?.full_name || '';
+    ['oldPwd','newPwd','confirmPwd'].forEach(id => document.getElementById(id).value='');
+    const m = document.getElementById('profileModal');
+    m.style.display = 'flex';
+  }
+  function closeProfile() {
+    document.getElementById('profileModal').style.display = 'none';
+  }
+  // إغلاق عند الضغط خارج المودال
+  document.getElementById('profileModal').addEventListener('click', function(e) {
+    if (e.target === this) closeProfile();
+  });
+
+  async function updateName() {
+    const name = document.getElementById('newFullNameMe').value.trim();
+    if (!name) { toast('أدخل الاسم الجديد','warn'); return; }
+    const r = await fetch(`${API}/auth/update-profile`, {
+      method:'PUT', headers:AH(), body:JSON.stringify({full_name:name})
+    });
+    const d = await r.json();
+    if (!r.ok) { toast(d.detail,'error'); return; }
+    CU.full_name = d.full_name;
+    document.getElementById('userFullName').textContent = d.full_name;
+    document.getElementById('userAvatar').textContent = d.full_name?.[0] || '?';
+    toast('تم تحديث الاسم بنجاح ✅','success');
+    closeProfile();
+  }
+
+  async function updatePassword() {
+    const old = document.getElementById('oldPwd').value;
+    const nw  = document.getElementById('newPwd').value;
+    const cf  = document.getElementById('confirmPwd').value;
+    if (!old||!nw) { toast('أدخل كلمة المرور الحالية والجديدة','warn'); return; }
+    if (nw !== cf) { toast('كلمة المرور الجديدة غير متطابقة','warn'); return; }
+    if (nw.length < 6) { toast('كلمة المرور يجب أن تكون 6 أحرف على الأقل','warn'); return; }
+    const r = await fetch(`${API}/auth/change-password`, {
+      method:'PUT', headers:AH(), body:JSON.stringify({old_password:old, new_password:nw})
+    });
+    const d = await r.json();
+    if (!r.ok) { toast(d.detail,'error'); return; }
+    toast('تم تغيير كلمة المرور بنجاح ✅','success');
+    closeProfile();
+  }
+
+  // ======================== ERP — المخازن ========================
+
+  // دالة مساعدة لتنسيق التاريخ
+  function fmtDate(d) {
+    if (!d) return '—';
+    return String(d).replace('T',' ').substring(0,10);
+  }
+
+  // تحديد اسم المخزن حسب النوع
+  function whLabel(t){ return t==='raw'?'مواد خام':t==='packaging'?'مواد تعبئة':'منتج نهائي'; }
+
+  // خريطة اسم المادة → ID للاستخدام في الاستلام
+  let _itemMaps = { raw:{}, packaging:{}, finished:{} };
+
+  // — تحميل المواد المعرّفة لمخزن معيّن —
+  async function loadWarehouseItems(wh) {
+    const r = await fetch(`${API}/warehouse/items/?warehouse_type=${wh}`, { headers: BH() });
+    if (!r.ok) return;
+    const data = await r.json();
+    const prefix = wh==='raw'?'raw':wh==='packaging'?'pkg':'fin';
+    const tbody = document.getElementById(`${prefix}ItemsList`);
+    // تحديث الخريطة
+    _itemMaps[wh] = {};
+    data.forEach(i => {
+      _itemMaps[wh][i.name_ar] = i.id;
+      if (i.name_en) _itemMaps[wh][i.name_en] = i.id;
+    });
+    // تحديث datalist الخاص بهذا المخزن
+    const dlId = wh==='raw'?'dl-raw-items':wh==='packaging'?'dl-pkg-items':'dl-fin-items';
+    const dl = document.getElementById(dlId);
+    if (dl) dl.innerHTML = data.map(i=>`<option value="${i.name_ar}">${i.name_en?'('+i.name_en+')':''}</option>`).join('');
+    if (!tbody) return;
+    tbody.innerHTML = data.map(i=>`
+      <tr>
+        <td>${i.name_ar}</td>
+        <td><small class="text-muted">${i.name_en||'—'}</small></td>
+        <td>${i.unit||'—'}</td>
+        <td>${i.min_quantity||'—'}</td>
+        <td><button onclick="delWarehouseItem(${i.id},'${wh}')" class="btn btn-sm btn-outline-danger">🗑️</button></td>
+      </tr>`).join('') || `<tr><td colspan="5" class="text-center text-muted">لا توجد مواد معرّفة</td></tr>`;
+  }
+
+  // — إضافة مادة جديدة لمخزن —
+  async function addWarehouseItem(wh) {
+    const prefix = wh==='raw'?'raw':wh==='packaging'?'pkg':'fin';
+    const name    = document.getElementById(`${prefix}ItemName`).value.trim();
+    const nameEn  = document.getElementById(`${prefix}ItemNameEn`)?.value.trim()||'';
+    const unit    = document.getElementById(`${prefix}ItemUnit`).value.trim()||'وحدة';
+    const minQ    = parseFloat(document.getElementById(`${prefix}ItemMin`).value)||0;
+    if (!name) { toast('أدخل اسم المادة','warn'); return; }
+    const r = await fetch(`${API}/warehouse/items/`, {
+      method:'POST', headers:AH(),
+      body:JSON.stringify({name_ar:name, name_en:nameEn, unit, min_quantity:minQ, warehouse_type:wh})
+    });
+    if (!r.ok) { const d=await r.json(); toast(d.detail||'خطأ','error'); return; }
+    toast(`تمت إضافة "${name}" ✅`,'success');
+    [`${prefix}ItemName`,`${prefix}ItemNameEn`,`${prefix}ItemUnit`,`${prefix}ItemMin`].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.value='';
+    });
+    loadWarehouseItems(wh);
+  }
+
+  // — حذف مادة من المخزن —
+  async function delWarehouseItem(id, wh) {
+    if (!confirm('حذف هذه المادة؟')) return;
+    const r = await fetch(`${API}/warehouse/items/${id}`, { method:'DELETE', headers:BH() });
+    if (!r.ok) { const d=await r.json(); toast(d.detail||'خطأ','error'); return; }
+    toast('تم الحذف','success');
+    loadWarehouseItems(wh);
+  }
+
+  // — تحميل الباتشات —
+  async function loadBatches(wh) {
+    const prefix = wh==='raw'?'raw':wh==='packaging'?'pkg':'fin';
+    const search  = document.getElementById(`${prefix}Search`)?.value||'';
+    const status  = document.getElementById(`${prefix}StatusF`)?.value||'active';
+    const expiry  = document.getElementById(`${prefix}ExpiryF`)?.value||'';
+    let url = `${API}/receiving/?warehouse_type=${wh}`;
+    if (status) url += `&status=${status}`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+    if (expiry) url += `&expiring_days=${expiry}`;
+    const r = await fetch(url, { headers: BH() });
+    if (!r.ok) return;
+    const data = await r.json();
+    const tbody = document.getElementById(`${prefix}BatchList`);
+    if (!tbody) return;
+    const today = new Date();
+    tbody.innerHTML = data.map(b => {
+      const expDate = b.expiry_date ? new Date(b.expiry_date) : null;
+      const daysLeft = expDate ? Math.ceil((expDate-today)/(1000*60*60*24)) : null;
+      let badge = '';
+      if (daysLeft !== null) {
+        if (daysLeft < 0) badge = `<span class="pill pill-rose">منتهي</span>`;
+        else if (daysLeft <= 7) badge = `<span class="pill pill-rose">⚠️ ${daysLeft}ي</span>`;
+        else if (daysLeft <= 30) badge = `<span class="pill pill-indigo">⏰ ${daysLeft}ي</span>`;
+        else badge = `<span class="pill pill-green">${daysLeft}ي</span>`;
+      }
+      const stBadge = b.status==='active'?`<span class="pill pill-green">نشط</span>`:
+                      b.status==='depleted'?`<span class="pill pill-slate">نفذ</span>`:
+                      `<span class="pill pill-rose">منتهي</span>`;
+      const isFinished = wh==='finished';
+      return `<tr>
+        <td><code style="font-size:0.82rem;background:#f1f5f9;padding:2px 6px;border-radius:5px">${b.internal_batch_no}</code></td>
+        <td>${b.item_name}</td>
+        <td>${b.quantity} ${b.unit||''}</td>
+        <td><strong>${b.remaining_qty} ${b.unit||''}</strong></td>
+        ${!isFinished?`<td>${b.supplier_name||'—'}</td><td>${b.supplier_batch_no||'—'}</td>`:''}
+        <td>${fmtDate(b.production_date)}</td>
+        <td>${fmtDate(b.expiry_date)} ${badge}</td>
+        <td>${stBadge}</td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="9" class="text-center text-muted py-4">لا توجد باتشات</td></tr>`;
+  }
+
+  // ======================== ERP — الاستلام ========================
+
+  // — تحميل المواد لنموذج الاستلام —
+  async function loadItemsForReceiving() {
+    const wh = document.getElementById('recWH').value;
+    const r = await fetch(`${API}/warehouse/items/?warehouse_type=${wh}`, { headers: BH() });
+    if (!r.ok) return;
+    const data = await r.json();
+    // تحديث خريطة اسم → ID
+    _itemMaps[wh] = {};
+    data.forEach(i => {
+      _itemMaps[wh][i.name_ar] = i.id;
+      if (i.name_en) _itemMaps[wh][i.name_en] = i.id;
+    });
+    // تحديث الـ datalist
+    const dl = document.getElementById('dl-rec-items');
+    dl.innerHTML = data.map(i =>
+      `<option value="${i.name_ar}">${i.name_en ? ' — '+i.name_en : ''}</option>`
+    ).join('');
+    // مسح الحقل
+    document.getElementById('recItemInput').value = '';
+  }
+
+  // — تأكيد استلام شحنة —
+  async function submitReceiving() {
+    const wh        = document.getElementById('recWH').value;
+    const itemName  = document.getElementById('recItemInput').value.trim();
+    const qty       = parseFloat(document.getElementById('recQty').value);
+    const supplier  = document.getElementById('recSupplier').value.trim();
+    const supBatch  = document.getElementById('recSupBatch').value.trim();
+    const prodDate  = document.getElementById('recProdDate').value;
+    const expDate   = document.getElementById('recExpDate').value;
+    const recDate   = document.getElementById('recDate').value;
+    const notes     = document.getElementById('recNotes').value.trim();
+    if (!itemName) { toast('أدخل اسم المادة','warn'); return; }
+    if (!qty||qty<=0) { toast('أدخل كمية صحيحة','warn'); return; }
+    // البحث عن ID المادة من الخريطة
+    const itemId = _itemMaps[wh]?.[itemName];
+    if (!itemId) { toast(`المادة "${itemName}" غير معرّفة في المخزن — أضفها أولاً من صفحة المخزن ✋`,'warn'); return; }
+    const payload = {
+      warehouse_type: wh, item_id: parseInt(itemId),
+      quantity: qty, supplier_name: supplier,
+      supplier_batch_no: supBatch,
+      production_date: prodDate||null, expiry_date: expDate||null,
+      receiving_date: recDate||null, notes
+    };
+    const r = await fetch(`${API}/receiving/`, { method:'POST', headers:AH(), body:JSON.stringify(payload) });
+    const d = await r.json();
+    if (!r.ok) { toast(d.detail||'خطأ في الاستلام','error'); return; }
+    const res = document.getElementById('recResult');
+    res.style.display='block';
+    res.innerHTML=`<div class="alert alert-success">✅ تم الاستلام بنجاح | رقم الباتش: <strong>${d.batch_no}</strong></div>`;
+    toast(`تم الاستلام — الباتش: ${d.batch_no}`,'success');
+    ['recItemInput','recQty','recSupplier','recSupBatch','recProdDate','recExpDate','recDate','recNotes'].forEach(id=>document.getElementById(id).value='');
+    loadRecentBatches();
+  }
+
+  // — تحميل آخر الشحنات —
+  async function loadRecentBatches() {
+    const r = await fetch(`${API}/receiving/?limit=20`, { headers: BH() });
+    if (!r.ok) return;
+    const data = await r.json();
+    const wlabel = {'raw':'مواد خام','packaging':'مواد تعبئة','finished':'منتج نهائي'};
+    document.getElementById('receivingList').innerHTML = data.map(b=>`
+      <tr>
+        <td><code style="font-size:0.82rem;background:#f1f5f9;padding:2px 6px;border-radius:5px">${b.internal_batch_no}</code></td>
+        <td>${b.item_name}</td>
+        <td><span class="pill pill-slate">${wlabel[b.warehouse_type]||b.warehouse_type}</span></td>
+        <td>${b.quantity} ${b.unit||''}</td>
+        <td>${b.supplier_name||'—'}</td>
+        <td>${b.supplier_batch_no||'—'}</td>
+        <td>${fmtDate(b.receiving_date||b.received_at)}</td>
+        <td>${fmtDate(b.expiry_date)}</td>
+        <td>${b.received_by||'—'}</td>
+      </tr>`).join('') || `<tr><td colspan="9" class="text-center text-muted py-4">لا توجد شحنات</td></tr>`;
+  }
+
+  // ======================== ERP — الصرف ========================
+
+  // — تحميل الباتشات لنموذج الصرف (مرتّبة FEFO) —
+  async function loadBatchesForIssuance() {
+    const wh = document.getElementById('issWH').value;
+    const r = await fetch(`${API}/receiving/?warehouse_type=${wh}&status=active`, { headers: BH() });
+    if (!r.ok) return;
+    const data = await r.json();
+    // ترتيب FEFO: الأقرب للانتهاء أولاً
+    data.sort((a,b)=>{
+      if (!a.expiry_date) return 1;
+      if (!b.expiry_date) return -1;
+      return new Date(a.expiry_date)-new Date(b.expiry_date);
+    });
+    const sel = document.getElementById('issBatch');
+    sel.innerHTML = data.length
+      ? data.map(b=>{
+          const exp = b.expiry_date?` | ينتهي: ${b.expiry_date.substring(0,10)}`:'';
+          return `<option value="${b.id}">[${b.internal_batch_no}] ${b.item_name} — متبقي: ${b.remaining_qty} ${b.unit||''}${exp}</option>`;
+        }).join('')
+      : `<option value="">— لا توجد باتشات نشطة —</option>`;
+  }
+
+  // — تأكيد صرف —
+  async function submitIssuance() {
+    const batchId = document.getElementById('issBatch').value;
+    const qty     = parseFloat(document.getElementById('issQty').value);
+    const purpose = document.getElementById('issPurpose').value;
+    const notes   = document.getElementById('issNotes').value.trim();
+    if (!batchId||!qty||qty<=0) { toast('اختر الباتش وأدخل الكمية','warn'); return; }
+    const r = await fetch(`${API}/issuance/`, {
+      method:'POST', headers:AH(),
+      body:JSON.stringify({batch_id:parseInt(batchId), quantity_issued:qty, purpose, notes})
+    });
+    const d = await r.json();
+    if (!r.ok) { toast(d.detail||'خطأ في الصرف','error'); return; }
+    const res = document.getElementById('issResult');
+    res.style.display='block';
+    res.innerHTML=`<div class="alert alert-warning">✅ تم الصرف | الباتش: <strong>${d.batch_no}</strong> | الكمية: <strong>${qty}</strong></div>`;
+    toast(`تم الصرف من الباتش ${d.batch_no}`,'success');
+    ['issQty','issNotes'].forEach(id=>document.getElementById(id).value='');
+    loadBatchesForIssuance();
+    loadIssuanceRecords();
+  }
+
+  // — تحميل سجلات الصرف —
+  async function loadIssuanceRecords() {
+    const wh = document.getElementById('issFilterWH')?.value||'';
+    let url = `${API}/issuance/?limit=30`;
+    if (wh) url += `&warehouse_type=${wh}`;
+    const r = await fetch(url, { headers: BH() });
+    if (!r.ok) return;
+    const data = await r.json();
+    const wlabel = {'raw':'مواد خام','packaging':'مواد تعبئة','finished':'منتج نهائي'};
+    const plabel = {'production':'إنتاج','sales':'مبيعات','other':'أخرى'};
+    document.getElementById('issuanceList').innerHTML = data.map(rec=>`
+      <tr>
+        <td><code style="font-size:0.82rem;background:#f1f5f9;padding:2px 6px;border-radius:5px">${rec.batch_no}</code></td>
+        <td>${rec.item_name}</td>
+        <td><span class="pill pill-slate">${wlabel[rec.warehouse_type]||rec.warehouse_type}</span></td>
+        <td><strong>${rec.quantity_issued}</strong></td>
+        <td>${plabel[rec.purpose]||rec.purpose||'—'}</td>
+        <td>${rec.issued_by||'—'}</td>
+        <td><small class="text-muted">${rec.issued_at?rec.issued_at.replace('T',' ').substring(0,16):''}</small></td>
+      </tr>`).join('') || `<tr><td colspan="7" class="text-center text-muted py-4">لا توجد عمليات صرف</td></tr>`;
+  }
+
+  // ======================== ERP — ربط الإنتاج ========================
+
+  let _finishedBatches = [];
+
+  async function loadFinishedBatchesForProduction() {
+    const r = await fetch(`${API}/receiving/?warehouse_type=finished&status=active`, { headers: BH() });
+    if (!r.ok) return;
+    _finishedBatches = await r.json();
+    const sel = document.getElementById('prodFinBatch');
+    sel.innerHTML = `<option value="">— اختر باتش المنتج النهائي —</option>` +
+      _finishedBatches.map(b=>`<option value="${b.id}">[${b.internal_batch_no}] ${b.item_name} (متبقي: ${b.remaining_qty} ${b.unit||''})</option>`).join('');
+    loadRawBatchesForProduction();
+  }
+
+  async function loadRawBatchesForProduction() {
+    const wh = document.getElementById('prodRawWH').value;
+    const r = await fetch(`${API}/receiving/?warehouse_type=${wh}&status=active`, { headers: BH() });
+    if (!r.ok) return;
+    const data = await r.json();
+    const sel = document.getElementById('prodRawBatch');
+    sel.innerHTML = data.length
+      ? data.map(b=>`<option value="${b.id}">[${b.internal_batch_no}] ${b.item_name} — متبقي: ${b.remaining_qty} ${b.unit||''}</option>`).join('')
+      : `<option value="">— لا توجد باتشات نشطة —</option>`;
+  }
+
+  async function loadLinksForBatch() {
+    const finId = document.getElementById('prodFinBatch').value;
+    loadProductionLinks(finId);
+  }
+
+  async function loadProductionLinks(finId = '') {
+    let url = `${API}/production-links/`;
+    if (finId) url += `?finished_batch_id=${finId}`;
+    const r = await fetch(url, { headers: BH() });
+    if (!r.ok) return;
+    const data = await r.json();
+    const wlabel = {'raw':'خام','packaging':'تعبئة'};
+    document.getElementById('productionLinksList').innerHTML = data.map(l=>`
+      <tr>
+        <td><code style="font-size:0.82rem;background:#f1f5f9;padding:2px 6px;border-radius:5px">${l.finished_batch_no}</code><br><small>${l.finished_item_name}</small></td>
+        <td>${l.raw_item_name}</td>
+        <td><span class="pill pill-slate">${wlabel[l.warehouse_type]||l.warehouse_type}</span></td>
+        <td><code style="font-size:0.82rem;background:#f1f5f9;padding:2px 6px;border-radius:5px">${l.raw_batch_no}</code></td>
+        <td><strong>${l.quantity_used} ${l.unit||''}</strong></td>
+        <td>${l.linked_by||'—'}</td>
+        <td><small class="text-muted">${fmtDate(l.linked_at)}</small></td>
+        <td><button onclick="deleteProdLink(${l.id})" class="btn btn-sm btn-outline-danger">🗑️</button></td>
+      </tr>`).join('') || `<tr><td colspan="8" class="text-center text-muted py-4">لا توجد روابط</td></tr>`;
+  }
+
+  async function submitProductionLink() {
+    const finBatchId = parseInt(document.getElementById('prodFinBatch').value);
+    const rawBatchId = parseInt(document.getElementById('prodRawBatch').value);
+    const qty = parseFloat(document.getElementById('prodQty').value);
+    const notes = document.getElementById('prodNotes').value.trim();
+    if (!finBatchId || !rawBatchId || !qty || qty <= 0) {
+      toast('اختر الباتشين وأدخل الكمية','warn'); return;
+    }
+    const r = await fetch(`${API}/production-links/`, {
+      method:'POST', headers:AH(),
+      body:JSON.stringify({finished_batch_id:finBatchId, raw_batch_id:rawBatchId, quantity_used:qty, notes})
+    });
+    const d = await r.json();
+    if (!r.ok) { toast(d.detail||'خطأ','error'); return; }
+    toast('تم الربط بنجاح ✅','success');
+    document.getElementById('prodQty').value = '';
+    document.getElementById('prodNotes').value = '';
+    loadLinksForBatch();
+  }
+
+  async function deleteProdLink(id) {
+    if (!confirm('حذف هذا الرابط؟')) return;
+    await fetch(`${API}/production-links/${id}`, { method:'DELETE', headers:BH() });
+    toast('تم الحذف','success');
+    loadLinksForBatch();
+  }
+
+  // ======================== ERP — التوزيع ========================
+
+  let _distBatches = [];
+  let _allBranches = [];
+
+  async function loadFinishedBatchesForDist() {
+    const r = await fetch(`${API}/receiving/?warehouse_type=finished&status=active`, { headers: BH() });
+    if (!r.ok) return;
+    _distBatches = await r.json();
+    const sel = document.getElementById('distBatch');
+    sel.innerHTML = `<option value="">— اختر الباتش —</option>` +
+      _distBatches.map(b=>`<option value="${b.id}" data-qty="${b.remaining_qty}" data-unit="${b.unit||''}">[${b.internal_batch_no}] ${b.item_name} (متبقي: ${b.remaining_qty} ${b.unit||''})</option>`).join('');
+    // تحميل الفروع
+    const rb = await fetch(`${API}/branches/`, { headers: BH() });
+    if (rb.ok) {
+      _allBranches = await rb.json();
+      const sb = document.getElementById('distBranch');
+      sb.innerHTML = _allBranches.length
+        ? _allBranches.map(b=>`<option value="${b.id}">${b.name}${b.location?' — '+b.location:''}</option>`).join('')
+        : `<option value="">— لا توجد فروع، أضفها أولاً —</option>`;
+      // فلتر التقرير
+      const sf = document.getElementById('distFilterBranch');
+      sf.innerHTML = `<option value="">كل الفروع</option>` +
+        _allBranches.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
+    }
+    loadDistributions();
+  }
+
+  function showDistBatchInfo() {
+    const sel = document.getElementById('distBatch');
+    const opt = sel.options[sel.selectedIndex];
+    document.getElementById('distAvailable').value = opt ? (opt.dataset.qty||'') + ' ' + (opt.dataset.unit||'') : '';
+  }
+
+  async function submitDistribution() {
+    const batchId  = parseInt(document.getElementById('distBatch').value);
+    const branchId = parseInt(document.getElementById('distBranch').value);
+    const qty      = parseFloat(document.getElementById('distQty').value);
+    const notes    = document.getElementById('distNotes').value.trim();
+    if (!batchId || !branchId || !qty || qty <= 0) {
+      toast('اختر الباتش والفرع وأدخل الكمية','warn'); return;
+    }
+    const r = await fetch(`${API}/distribution/`, {
+      method:'POST', headers:AH(),
+      body:JSON.stringify({batch_id:batchId, branch_id:branchId, quantity:qty, notes})
+    });
+    const d = await r.json();
+    if (!r.ok) { toast(d.detail||'خطأ في التوزيع','error'); return; }
+    const res = document.getElementById('distResult');
+    res.style.display='block';
+    res.innerHTML=`<div class="alert alert-success">✅ تم التوزيع | فرع: <strong>${d.branch}</strong> | الكمية: <strong>${qty}</strong> | المتبقي في الباتش: <strong>${d.remaining}</strong></div>`;
+    toast(`تم التوزيع على فرع: ${d.branch}`,'success');
+    document.getElementById('distQty').value = '';
+    loadFinishedBatchesForDist();
+  }
+
+  async function loadDistributions() {
+    const branchId = document.getElementById('distFilterBranch')?.value||'';
+    let url = `${API}/distribution/`;
+    if (branchId) url += `?branch_id=${branchId}`;
+    const r = await fetch(url, { headers: BH() });
+    if (!r.ok) return;
+    const data = await r.json();
+    document.getElementById('distributionList').innerHTML = data.map(rec=>`
+      <tr>
+        <td><code style="font-size:0.82rem;background:#f1f5f9;padding:2px 6px;border-radius:5px">${rec.batch_no}</code></td>
+        <td>${rec.item_name}</td>
+        <td><span class="pill pill-indigo">${rec.branch_name}</span></td>
+        <td><strong>${rec.quantity}</strong></td>
+        <td>${rec.unit||'—'}</td>
+        <td><small class="text-muted">${fmtDate(rec.distribution_date)}</small></td>
+        <td>${rec.distributed_by||'—'}</td>
+        <td><small>${rec.notes||'—'}</small></td>
+      </tr>`).join('') || `<tr><td colspan="8" class="text-center text-muted py-4">لا توجد توزيعات</td></tr>`;
+  }
+
+  // ======================== ERP — إدارة الفروع ========================
+
+  async function loadBranchesPage() {
+    const r = await fetch(`${API}/branches/`, { headers: BH() });
+    if (!r.ok) return;
+    const data = await r.json();
+    document.getElementById('branchesList').innerHTML = data.map((b,i)=>`
+      <tr>
+        <td>${i+1}</td>
+        <td><strong>${b.name}</strong></td>
+        <td>${b.location||'—'}</td>
+        <td><small class="text-muted">${fmtDate(b.created_at)}</small></td>
+        <td><button onclick="deleteBranch(${b.id})" class="btn btn-sm btn-outline-danger">🗑️</button></td>
+      </tr>`).join('') || `<tr><td colspan="5" class="text-center text-muted py-4">لا توجد فروع</td></tr>`;
+  }
+
+  async function addBranch() {
+    const name = document.getElementById('branchName').value.trim();
+    const loc  = document.getElementById('branchLocation').value.trim();
+    if (!name) { toast('أدخل اسم الفرع','warn'); return; }
+    const r = await fetch(`${API}/branches/`, {
+      method:'POST', headers:AH(), body:JSON.stringify({name, location:loc})
+    });
+    const d = await r.json();
+    if (!r.ok) { toast(d.detail||'خطأ','error'); return; }
+    toast(`تمت إضافة فرع "${name}" ✅`,'success');
+    document.getElementById('branchName').value = '';
+    document.getElementById('branchLocation').value = '';
+    loadBranchesPage();
+  }
+
+  async function deleteBranch(id) {
+    if (!confirm('حذف هذا الفرع؟')) return;
+    await fetch(`${API}/branches/${id}`, { method:'DELETE', headers:BH() });
+    toast('تم الحذف','success');
+    loadBranchesPage();
+  }
+
+  // ======================== ERP — التتبع ========================
+
+  let _traceData = null;
+
+  async function traceSearch() {
+    const batchNo = document.getElementById('traceInput').value.trim();
+    if (!batchNo) { toast('أدخل رقم الباتش','warn'); return; }
+    const r = await fetch(`${API}/traceability/${encodeURIComponent(batchNo)}`, { headers: BH() });
+    if (!r.ok) { const d=await r.json(); toast(d.detail||'الباتش غير موجود','error'); return; }
+    _traceData = await r.json();
+    renderTraceResult(_traceData);
+    document.getElementById('traceResult').style.display='block';
+  }
+
+  function renderTraceResult(data) {
+    // data هو الباتش مباشرة من API (ليس data.batch)
+    const b = data;
+    const wlabel = {'raw':'مواد خام','packaging':'مواد تعبئة','finished':'منتج نهائي'};
+    const stBadge = b.status==='active'
+      ? `<span class="pill pill-green">نشط</span>`
+      : b.status==='depleted'
+        ? `<span class="pill pill-slate">نفذ</span>`
+        : `<span class="pill pill-rose">منتهي الصلاحية</span>`;
+
+    document.getElementById('traceBatchInfo').innerHTML = `
+      <div class="row g-3">
+        <div class="col-md-2"><div class="fw-bold text-muted small">رقم الباتش</div>
+          <code style="font-size:1rem;background:#f1f5f9;padding:4px 10px;border-radius:6px">${b.batch_no}</code></div>
+        <div class="col-md-2"><div class="fw-bold text-muted small">المادة / المنتج</div><strong>${b.item_name}</strong></div>
+        <div class="col-md-2"><div class="fw-bold text-muted small">نوع المخزن</div>${wlabel[b.warehouse_type]||b.warehouse_type}</div>
+        <div class="col-md-1"><div class="fw-bold text-muted small">الكمية الأصلية</div>${b.quantity} ${b.unit||''}</div>
+        <div class="col-md-1"><div class="fw-bold text-muted small">المتبقي</div><strong>${b.remaining_qty} ${b.unit||''}</strong></div>
+        <div class="col-md-2"><div class="fw-bold text-muted small">تاريخ الاستلام</div>${fmtDate(b.receiving_date)}</div>
+        <div class="col-md-2"><div class="fw-bold text-muted small">تاريخ الانتهاء</div>${fmtDate(b.expiry_date)}</div>
+        <div class="col-md-1"><div class="fw-bold text-muted small">الحالة</div>${stBadge}</div>
+        <div class="col-md-2"><div class="fw-bold text-muted small">المورد</div>${b.supplier_name||'—'}</div>
+        <div class="col-md-2"><div class="fw-bold text-muted small">باتش المورد</div>${b.supplier_batch_no||'—'}</div>
+      </div>`;
+
+    // التتبع العكسي: مواد خام ← منتج نهائي (made_from)
+    const backCard = document.getElementById('traceBackwardCard');
+    const madeFrom = b.made_from || [];
+    if (madeFrom.length > 0) {
+      backCard.style.display = 'block';
+      document.getElementById('traceBackwardList').innerHTML = madeFrom.map(m=>`
+        <tr>
+          <td><code style="font-size:0.82rem;background:#f1f5f9;padding:2px 6px;border-radius:5px">${m.raw_batch_no}</code></td>
+          <td>${m.raw_item_name}</td>
+          <td><span class="pill pill-slate">${wlabel[m.warehouse_type]||m.warehouse_type}</span></td>
+          <td><strong>${m.quantity_used} ${m.unit||''}</strong></td>
+        </tr>`).join('');
+    } else {
+      backCard.style.display = 'none';
+    }
+
+    // التتبع الأمامي
+    let fwdHtml = '';
+    // مواد خام/تعبئة → استُخدمت في إنتاج (used_in_finished)
+    const usedIn = b.used_in_finished || [];
+    if (usedIn.length > 0) {
+      fwdHtml += `<div class="fw-bold mb-2">🏭 استُخدمت في إنتاج:</div>
+        <table class="table table-sm mb-3">
+          <thead><tr><th>باتش المنتج النهائي</th><th>المنتج</th><th>الكمية المستخدمة</th></tr></thead>
+          <tbody>${usedIn.map(u=>`
+            <tr>
+              <td><code style="font-size:0.82rem;background:#f1f5f9;padding:2px 6px;border-radius:5px">${u.finished_batch_no}</code></td>
+              <td>${u.finished_item_name}</td>
+              <td><strong>${u.quantity_used} ${u.unit||''}</strong></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>`;
+    }
+    // منتج نهائي → وُزّع على فروع (distributed_to)
+    const distTo = b.distributed_to || [];
+    if (distTo.length > 0) {
+      fwdHtml += `<div class="fw-bold mb-2">🚚 وُزّع على الفروع:</div>
+        <table class="table table-sm mb-3">
+          <thead><tr><th>الفرع</th><th>الكمية</th><th>تاريخ التوزيع</th><th>بواسطة</th></tr></thead>
+          <tbody>${distTo.map(d=>`
+            <tr>
+              <td><span class="pill pill-indigo">${d.branch_name}</span></td>
+              <td><strong>${d.quantity} ${d.unit||''}</strong></td>
+              <td>${fmtDate(d.distribution_date)}</td>
+              <td>${d.distributed_by||'—'}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>`;
+    }
+    if (!fwdHtml) fwdHtml = `<p class="text-muted py-2">لا توجد حركات أمامية مسجّلة لهذا الباتش.</p>`;
+    document.getElementById('traceForwardContent').innerHTML = fwdHtml;
+  }
+
+  // ======================== ERP — التقارير ========================
+
+  async function loadReports() {
+    const r = await fetch(`${API}/reports/overview`, { headers: BH() });
+    if (!r.ok) return;
+    const ov = await r.json();
+    // ov.active_batches = { raw: N, packaging: N, finished: N }
+    ['raw','packaging','finished'].forEach(wt => {
+      const prefix = wt==='raw'?'raw':wt==='packaging'?'pkg':'fin';
+      const el = document.getElementById(`rpt-${prefix}-batches`);
+      if (el) el.textContent = ov.active_batches?.[wt] ?? '—';
+      const expEl = document.getElementById(`rpt-${prefix}-exp`);
+      if (expEl) expEl.textContent = '';
+    });
+    // جداول تفصيلية
+    ['raw','packaging','finished'].forEach(wt => loadInventoryReport(wt));
+  }
+
+  async function loadInventoryReport(wt) {
+    const r = await fetch(`${API}/reports/inventory/${wt}`, { headers: BH() });
+    if (!r.ok) return;
+    const data = await r.json();
+    // data.item_totals = [{item_name, total, unit, batches}]
+    // data.batches = [{batch_no, item_name, remaining_qty, unit, expiry_date, ...}]
+    const prefix = wt==='raw'?'Raw':wt==='packaging'?'Pkg':'Fin';
+    const tbody = document.getElementById(`rpt${prefix}Body`);
+    if (!tbody) return;
+    const items = data.item_totals || [];
+    tbody.innerHTML = items.map(item=>`
+      <tr>
+        <td><strong>${item.item_name}</strong></td>
+        <td>${item.unit||'—'}</td>
+        <td><strong>${(item.total||0).toFixed(2)}</strong></td>
+        <td>${item.batches||0}</td>
+        <td>—</td>
+        <td>—</td>
+      </tr>`).join('') || `<tr><td colspan="6" class="text-center text-muted py-3">لا توجد بيانات</td></tr>`;
+  }
+
+  // ======================== التصدير Excel ========================
+
+  async function exportWarehouseExcel(wh) {
+    const r = await fetch(`${API}/reports/inventory/${wh}`, { headers: BH() });
+    if (!r.ok) return;
+    const data = await r.json();
+    const rows = (data.batches||[]).map(b => ({
+      'المادة': b.item_name, 'الوحدة': b.unit||'—',
+      'رقم الباتش': b.batch_no,
+      'المتبقي': b.remaining_qty,
+      'المورد': b.supplier_name||'—',
+      'باتش المورد': b.supplier_batch_no||'—',
+      'تاريخ الانتهاء': fmtDate(b.expiry_date),
+    }));
+    const wlabel = {'raw':'الخام','packaging':'التعبئة','finished':'النهائي'};
+    exportToExcel(rows, `مخزن_${wlabel[wh]}_${new Date().toISOString().substring(0,10)}`);
+  }
+
+  async function exportReceivingExcel() {
+    const r = await fetch(`${API}/receiving/?limit=500`, { headers: BH() });
+    if (!r.ok) return;
+    const data = await r.json();
+    const wlabel = {'raw':'مواد خام','packaging':'مواد تعبئة','finished':'منتج نهائي'};
+    const rows = data.map(b=>({
+      'رقم الباتش': b.internal_batch_no, 'المادة': b.item_name,
+      'المخزن': wlabel[b.warehouse_type]||b.warehouse_type,
+      'الكمية': b.quantity, 'الوحدة': b.unit||'',
+      'المورد': b.supplier_name||'—', 'باتش المورد': b.supplier_batch_no||'—',
+      'تاريخ الاستلام': fmtDate(b.receiving_date||b.received_at),
+      'تاريخ الإنتاج': fmtDate(b.production_date),
+      'تاريخ الانتهاء': fmtDate(b.expiry_date),
+      'المستلِم': b.received_by, 'الحالة': b.status
+    }));
+    exportToExcel(rows, `الاستلامات_${new Date().toISOString().substring(0,10)}`);
+  }
+
+  async function exportProductionExcel() {
+    const r = await fetch(`${API}/production-links/`, { headers: BH() });
+    if (!r.ok) return;
+    const data = await r.json();
+    const rows = data.map(l=>({
+      'باتش المنتج النهائي': l.finished_batch_no, 'المنتج': l.finished_item_name,
+      'باتش الخامة': l.raw_batch_no, 'الخامة': l.raw_item_name,
+      'نوع مخزن الخامة': l.warehouse_type==='raw'?'خام':'تعبئة',
+      'الكمية المستخدمة': l.quantity_used, 'الوحدة': l.unit||'',
+      'بواسطة': l.linked_by, 'التاريخ': fmtDate(l.linked_at)
+    }));
+    exportToExcel(rows, `ربط_الإنتاج_${new Date().toISOString().substring(0,10)}`);
+  }
+
+  async function exportDistributionExcel() {
+    const r = await fetch(`${API}/distribution/`, { headers: BH() });
+    if (!r.ok) return;
+    const data = await r.json();
+    const rows = data.map(rec=>({
+      'رقم الباتش': rec.batch_no, 'المنتج': rec.item_name,
+      'الفرع': rec.branch_name, 'الكمية': rec.quantity, 'الوحدة': rec.unit||'',
+      'تاريخ التوزيع': fmtDate(rec.distribution_date),
+      'بواسطة': rec.distributed_by, 'ملاحظات': rec.notes||'—'
+    }));
+    exportToExcel(rows, `التوزيع_${new Date().toISOString().substring(0,10)}`);
+  }
+
+  function exportTraceExcel() {
+    if (!_traceData) { toast('لا توجد نتيجة تتبع للتصدير','warn'); return; }
+    const b = _traceData.batch;
+    const rows = [{ 'رقم الباتش': b.batch_no, 'المادة': b.item_name, 'الكمية الأصلية': b.quantity,
+                    'المتبقي': b.remaining_qty, 'المورد': b.supplier_name||'—',
+                    'تاريخ الاستلام': fmtDate(b.receiving_date||b.received_at),
+                    'تاريخ الانتهاء': fmtDate(b.expiry_date), 'الحالة': b.status }];
+    exportToExcel(rows, `تتبع_${b.batch_no}`);
+  }
+
+  async function exportAllReportsExcel() {
+    for (const wh of ['raw','packaging','finished']) {
+      await exportWarehouseExcel(wh);
+    }
+  }
+
+  function exportToExcel(rows, sheetName) {
+    if (!rows.length) { toast('لا توجد بيانات للتصدير','warn'); return; }
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0,31));
+    XLSX.writeFile(wb, `${sheetName}.xlsx`);
+    toast('تم تصدير ملف Excel ✅','success');
+  }
+
+  init();
+</script>
+</body>
+</html>
