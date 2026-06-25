@@ -325,6 +325,7 @@ class ChangeMyPasswordRequest(BaseModel):
 
 class UpdateProfileRequest(BaseModel):
     full_name: str
+    username: Optional[str] = None
 
 class WarehouseItemCreate(BaseModel):
     warehouse_type: str
@@ -487,11 +488,22 @@ def update_my_profile(req: UpdateProfileRequest,
                       db: Session = Depends(get_db)):
     if not req.full_name.strip():
         raise HTTPException(status_code=400, detail="الاسم لا يمكن أن يكون فارغاً")
-    old = current_user.full_name
+    old_name = current_user.full_name
     current_user.full_name = req.full_name.strip()
+    new_username = current_user.username
+    if req.username and req.username.strip():
+        new_username = req.username.strip()
+        if new_username != current_user.username:
+            existing = db.query(User).filter(User.username == new_username).first()
+            if existing:
+                raise HTTPException(status_code=400, detail="اسم المستخدم مستخدم بالفعل")
+            old_username = current_user.username
+            current_user.username = new_username
+            log_action(db, current_user, "CHANGE_USERNAME", f"غيّر اسم المستخدم من '{old_username}' إلى '{new_username}'")
+    if current_user.full_name != old_name:
+        log_action(db, current_user, "CHANGE_PROFILE", f"غيّر اسمه من '{old_name}' إلى '{req.full_name}'")
     db.commit()
-    log_action(db, current_user, "CHANGE_PROFILE", f"غيّر اسمه من '{old}' إلى '{req.full_name}'")
-    return {"status": "updated", "full_name": current_user.full_name}
+    return {"status": "updated", "full_name": current_user.full_name, "username": current_user.username}
 
 # ===================== Endpoints: المستخدمون =====================
 @app.get("/users/")

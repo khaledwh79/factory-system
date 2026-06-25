@@ -18,10 +18,10 @@
       --text: #0f172a;
       --muted: #64748b;
       --border: #e2e8f0;
-      --sidebar-bg: #0f172a;
-      --sidebar-text: rgba(255,255,255,0.65);
-      --sidebar-active-bg: rgba(99,102,241,0.15);
-      --sidebar-active-border: #6366f1;
+      --sidebar-bg: #0c4a6e;
+      --sidebar-text: rgba(255,255,255,0.75);
+      --sidebar-active-bg: rgba(14,165,233,0.18);
+      --sidebar-active-border: #38bdf8;
     }
     * { box-sizing: border-box; }
     body { font-family: 'Tajawal', sans-serif; background: var(--bg); color: var(--text); margin: 0; }
@@ -29,12 +29,12 @@
     /* ============ SIDEBAR ============ */
     .sidebar {
       width: var(--sidebar-w);
-      min-height: 100vh;
-      background: var(--sidebar-bg);
+      height: 100vh;
+      background: linear-gradient(180deg, #0c4a6e 0%, #075985 60%, #0369a1 100%);
       position: fixed; top: 0; right: 0;
       display: flex; flex-direction: column;
       z-index: 200;
-      border-left: 1px solid rgba(255,255,255,0.05);
+      border-left: 1px solid rgba(255,255,255,0.08);
     }
     .sidebar-brand {
       padding: 24px 20px 20px;
@@ -54,10 +54,10 @@
     }
     .sidebar-brand .logo-text { line-height: 1.2; }
     .sidebar-brand .logo-text strong { color: #f1f5f9; font-size: 0.95rem; font-weight: 700; display: block; }
-    .sidebar-brand .logo-text span { color: #475569; font-size: 0.72rem; }
+    .sidebar-brand .logo-text span { color: #7dd3fc; font-size: 0.72rem; }
 
     .nav-section-label {
-      color: #334155; font-size: 0.68rem; font-weight: 700;
+      color: #7dd3fc; font-size: 0.68rem; font-weight: 700;
       text-transform: uppercase; letter-spacing: 0.08em;
       padding: 18px 20px 6px;
     }
@@ -74,7 +74,7 @@
     }
     .nav-btn:hover { color: #e2e8f0; background: rgba(255,255,255,0.04); }
     .nav-btn.active {
-      color: #a5b4fc;
+      color: #bae6fd;
       background: var(--sidebar-active-bg);
       border-right-color: var(--sidebar-active-border);
     }
@@ -85,7 +85,7 @@
       background: rgba(255,255,255,0.05);
       flex-shrink: 0;
     }
-    .nav-btn.active .ni { background: rgba(99,102,241,0.2); }
+    .nav-btn.active .ni { background: rgba(14,165,233,0.25); }
     .nav-badge {
       margin-right: auto;
       background: #ef4444; color: white;
@@ -1146,9 +1146,17 @@
       <button onclick="closeProfile()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:#94a3b8;">✕</button>
     </div>
 
+    <!-- تغيير اسم المستخدم -->
+    <div style="margin-bottom:24px; padding-bottom:24px; border-bottom:1px solid #f1f5f9;">
+      <div style="font-size:0.82rem; font-weight:700; color:#64748b; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.05em;">تغيير اسم المستخدم</div>
+      <label class="form-label">اسم المستخدم الجديد</label>
+      <input id="newUsernameMe" class="form-control mb-2" placeholder="أدخل اسم المستخدم الجديد">
+      <button onclick="updateUsername()" class="btn btn-info btn-sm w-100" style="color:#fff;">حفظ اسم المستخدم</button>
+    </div>
+
     <!-- تغيير الاسم -->
     <div style="margin-bottom:24px; padding-bottom:24px; border-bottom:1px solid #f1f5f9;">
-      <div style="font-size:0.82rem; font-weight:700; color:#64748b; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.05em;">تغيير الاسم</div>
+      <div style="font-size:0.82rem; font-weight:700; color:#64748b; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.05em;">تغيير الاسم الكامل</div>
       <label class="form-label">الاسم الكامل</label>
       <input id="newFullNameMe" class="form-control mb-2" placeholder="أدخل الاسم الجديد">
       <button onclick="updateName()" class="btn btn-primary btn-sm w-100">حفظ الاسم</button>
@@ -1485,6 +1493,7 @@
   // ===== إعدادات الحساب =====
   function openProfile() {
     document.getElementById('newFullNameMe').value = CU?.full_name || '';
+    document.getElementById('newUsernameMe').value = CU?.username || '';
     ['oldPwd','newPwd','confirmPwd'].forEach(id => document.getElementById(id).value='');
     const m = document.getElementById('profileModal');
     m.style.display = 'flex';
@@ -1496,6 +1505,20 @@
   document.getElementById('profileModal').addEventListener('click', function(e) {
     if (e.target === this) closeProfile();
   });
+
+  async function updateUsername() {
+    const username = document.getElementById('newUsernameMe').value.trim();
+    if (!username) { toast('أدخل اسم المستخدم الجديد','warn'); return; }
+    if (username.length < 3) { toast('اسم المستخدم يجب أن يكون 3 أحرف على الأقل','warn'); return; }
+    const r = await fetch(`${API}/auth/update-profile`, {
+      method:'PUT', headers:AH(), body:JSON.stringify({full_name: CU.full_name, username: username})
+    });
+    const d = await r.json();
+    if (!r.ok) { toast(d.detail,'error'); return; }
+    CU.username = d.username || username;
+    toast('تم تحديث اسم المستخدم بنجاح ✅','success');
+    closeProfile();
+  }
 
   async function updateName() {
     const name = document.getElementById('newFullNameMe').value.trim();
