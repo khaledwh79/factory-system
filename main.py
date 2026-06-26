@@ -1,13 +1,28 @@
-import sys, traceback
+import sys, traceback, atexit, signal
 
 def _crash(exc_type, exc_value, exc_tb):
     print("="*60, flush=True)
     print(f"STARTUP CRASH: {exc_type.__name__}: {exc_value}", flush=True)
     traceback.print_exception(exc_type, exc_value, exc_tb)
     print("="*60, flush=True)
+    sys.stdout.flush()
     sys.exit(1)
 
 sys.excepthook = _crash
+
+def _sig(signum, frame):
+    print(f"[SIGNAL] Got signal {signum} — exiting", flush=True)
+    traceback.print_stack(frame, file=sys.stdout)
+    sys.stdout.flush()
+    sys.exit(1)
+
+for _s in (signal.SIGTERM, signal.SIGABRT):
+    try:
+        signal.signal(_s, _sig)
+    except Exception:
+        pass
+
+atexit.register(lambda: print("[ATEXIT] process exiting", flush=True))
 
 from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -184,15 +199,20 @@ def migrate_db():
             "ALTER TABLE warehouse_items ADD COLUMN name_en VARCHAR",
             "ALTER TABLE issuance_records ADD COLUMN unit VARCHAR",
         ]
-    with engine.connect() as conn:
-        for stmt in migrations:
-            try:
-                conn.execute(text(stmt))
-                conn.commit()
-            except Exception:
-                pass  # العمود موجود بالفعل
+    try:
+        with engine.connect() as conn:
+            for stmt in migrations:
+                try:
+                    conn.execute(text(stmt))
+                    conn.commit()
+                except Exception as em:
+                    print(f"[migrate_db] skipped: {em}", flush=True)
+    except BaseException as e:
+        print(f"[migrate_db] connection error: {type(e).__name__}: {e}", flush=True)
 
+print("[STARTUP] calling migrate_db...", flush=True)
 migrate_db()
+print("[STARTUP] migrate_db OK", flush=True)
 
 # ===================== بذر المواد الافتراضية =====================
 def create_default_data():
@@ -487,8 +507,25 @@ def create_default_admin():
     finally:
         db.close()
 
-create_default_admin()
-create_default_data()
+print("[STARTUP] calling create_default_admin...", flush=True)
+try:
+    create_default_admin()
+    print("[STARTUP] admin OK", flush=True)
+except BaseException as e:
+    print(f"[STARTUP ERROR] admin crash: {type(e).__name__}: {e}", flush=True)
+    traceback.print_exc(file=sys.stdout)
+    sys.stdout.flush()
+
+print("[STARTUP] calling create_default_data...", flush=True)
+try:
+    create_default_data()
+    print("[STARTUP] data OK", flush=True)
+except BaseException as e:
+    print(f"[STARTUP ERROR] data crash: {type(e).__name__}: {e}", flush=True)
+    traceback.print_exc(file=sys.stdout)
+    sys.stdout.flush()
+
+print("[STARTUP] all setup done — starting uvicorn...", flush=True)
 
 # ===================== Endpoints: المصادقة =====================
 @app.post("/auth/login")
@@ -1074,4 +1111,19 @@ def report_overview(current_user: User = Depends(get_current_user),
         "total_production_links": total_links,
     }
 
-# ===================== Endpoints: الصفحات ==========
+# ===================== Endpoints: الصفحات =====================
+@app.get("/")
+def root():
+    return FileResponse("login.html")
+
+@app.get("/login")
+def login_page():
+    return FileResponse("login.html")
+
+@app.get("/dashboard")
+def dashboard_page():
+    return FileResponse("dashboard.html")
+
+# ===================== تشغيل التطبيق =====================
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 10000)), reload=False)
