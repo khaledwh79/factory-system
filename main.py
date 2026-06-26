@@ -14,10 +14,7 @@ import uvicorn
 import os
 
 # ===================== إعداد قاعدة البيانات =====================
-# استخدم /data للتخزين الدائم على Render (Persistent Disk)، وإلا استخدم المجلد الحالي
-_data_dir = "/data"
-_db_file = os.path.join(_data_dir, "factory_system.db") if os.path.isdir(_data_dir) else "./factory_system.db"
-SQLALCHEMY_DATABASE_URL = f"sqlite:///{_db_file}"
+SQLALCHEMY_DATABASE_URL = "sqlite:///./factory_system.db"
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
@@ -1060,3 +1057,4 @@ def dashboard_page():
 # ===================== تشغيل التطبيق =====================
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=int(os.environ.get("PORT", 10000)), reload=False)
+                                                                                                                                                                                                                                                              
