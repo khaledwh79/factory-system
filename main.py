@@ -14,8 +14,14 @@ import uvicorn
 import os
 
 # ===================== إعداد قاعدة البيانات =====================
-SQLALCHEMY_DATABASE_URL = "sqlite:///./factory_system.db"
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+# استخدم DATABASE_URL من البيئة (Render PostgreSQL) أو SQLite للتطوير المحلي
+SQLALCHEMY_DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./factory_system.db")
+# Render يعطي postgres:// لكن SQLAlchemy يحتاج postgresql://
+if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
+# SQLite يحتاج check_same_thread، PostgreSQL لا يحتاجه
+_connect_args = {"check_same_thread": False} if SQLALCHEMY_DATABASE_URL.startswith("sqlite") else {}
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args=_connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -146,11 +152,20 @@ Base.metadata.create_all(bind=engine)
 
 # ===== ترقية قاعدة البيانات — إضافة الأعمدة الجديدة إن لم تكن موجودة =====
 def migrate_db():
-    migrations = [
-        "ALTER TABLE batches ADD COLUMN receiving_date DATETIME",
-        "ALTER TABLE warehouse_items ADD COLUMN name_en VARCHAR",
-        "ALTER TABLE issuance_records ADD COLUMN unit VARCHAR",
-    ]
+    # PostgreSQL يدعم IF NOT EXISTS في ALTER TABLE
+    is_pg = not SQLALCHEMY_DATABASE_URL.startswith("sqlite")
+    if is_pg:
+        migrations = [
+            "ALTER TABLE batches ADD COLUMN IF NOT EXISTS receiving_date TIMESTAMP",
+            "ALTER TABLE warehouse_items ADD COLUMN IF NOT EXISTS name_en VARCHAR",
+            "ALTER TABLE issuance_records ADD COLUMN IF NOT EXISTS unit VARCHAR",
+        ]
+    else:
+        migrations = [
+            "ALTER TABLE batches ADD COLUMN receiving_date DATETIME",
+            "ALTER TABLE warehouse_items ADD COLUMN name_en VARCHAR",
+            "ALTER TABLE issuance_records ADD COLUMN unit VARCHAR",
+        ]
     with engine.connect() as conn:
         for stmt in migrations:
             try:
@@ -1034,27 +1049,4 @@ def report_overview(current_user: User = Depends(get_current_user),
     total_pkg = db.query(Batch).filter(Batch.warehouse_type=="packaging", Batch.status=="active").count()
     total_fin = db.query(Batch).filter(Batch.warehouse_type=="finished", Batch.status=="active").count()
     total_dist = db.query(DistributionRecord).count()
-    total_links = db.query(ProductionLink).count()
-    return {
-        "active_batches": {"raw": total_raw, "packaging": total_pkg, "finished": total_fin},
-        "total_distributions": total_dist,
-        "total_production_links": total_links,
-    }
-
-# ===================== Endpoints: الصفحات =====================
-@app.get("/")
-def root():
-    return FileResponse("login.html")
-
-@app.get("/login")
-def login_page():
-    return FileResponse("login.html")
-
-@app.get("/dashboard")
-def dashboard_page():
-    return FileResponse("dashboard.html")
-
-# ===================== تشغيل التطبيق =====================
-if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=int(os.environ.get("PORT", 10000)), reload=False)
-                                                                                                                                                                                                                                                              
+    total_links = db.query(ProductionLink).c
