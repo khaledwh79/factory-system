@@ -2,6 +2,10 @@ services:
   - type: web
     name: factory-management
     runtime: docker
+    disk:
+      name: factory-db
+      mountPath: /data
+      sizeGB: 1
     envVars:
       - key: SECRET_KEY
         generateValue: true

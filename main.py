@@ -14,7 +14,10 @@ import uvicorn
 import os
 
 # ===================== إعداد قاعدة البيانات =====================
-SQLALCHEMY_DATABASE_URL = "sqlite:///./factory_system.db"
+# استخدم /data للتخزين الدائم على Render (Persistent Disk)، وإلا استخدم المجلد الحالي
+_data_dir = "/data"
+_db_file = os.path.join(_data_dir, "factory_system.db") if os.path.isdir(_data_dir) else "./factory_system.db"
+SQLALCHEMY_DATABASE_URL = f"sqlite:///{_db_file}"
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
@@ -97,6 +100,7 @@ class IssuanceRecord(Base):
     item_name = Column(String)
     warehouse_type = Column(String)
     quantity_issued = Column(Float)
+    unit = Column(String, nullable=True)
     issued_by = Column(String)
     issued_at = Column(DateTime, default=datetime.utcnow)
     purpose = Column(String, nullable=True)
@@ -148,6 +152,7 @@ def migrate_db():
     migrations = [
         "ALTER TABLE batches ADD COLUMN receiving_date DATETIME",
         "ALTER TABLE warehouse_items ADD COLUMN name_en VARCHAR",
+        "ALTER TABLE issuance_records ADD COLUMN unit VARCHAR",
     ]
     with engine.connect() as conn:
         for stmt in migrations:
@@ -338,11 +343,12 @@ class ReceivingCreate(BaseModel):
     item_id: int
     warehouse_type: str
     quantity: float
+    unit: Optional[str] = None             # وحدة الكمية (كيلو/جرام/لتر/عبوة/كرتون/...)
     supplier_name: Optional[str] = None
     supplier_batch_no: Optional[str] = None
     production_date: Optional[str] = None
     expiry_date: Optional[str] = None
-    receiving_date: Optional[str] = None   # NEW
+    receiving_date: Optional[str] = None
     notes: Optional[str] = None
 
 class IssuanceCreate(BaseModel):
@@ -705,7 +711,7 @@ def receive_batch(req: ReceivingCreate,
         warehouse_type=req.warehouse_type,
         item_id=req.item_id,
         item_name=item.name_ar,
-        unit=item.unit,
+        unit=req.unit if req.unit and req.unit.strip() else item.unit,
         quantity=req.quantity,
         remaining_qty=req.quantity,
         supplier_name=req.supplier_name,
@@ -719,7 +725,7 @@ def receive_batch(req: ReceivingCreate,
     db.add(batch)
     db.commit()
     log_action(db, current_user, "RECEIVE_BATCH",
-               f"استلم باتش {batch_no} | {item.name_ar} | الكمية: {req.quantity} {item.unit} | المورد: {req.supplier_name or '-'}")
+               f"استلم باتش {batch_no} | {item.name_ar} | الكمية: {req.quantity} {req.unit or item.unit} | المورد: {req.supplier_name or '-'}")
     return {"status": "received", "batch_no": batch_no, "batch_id": batch.id}
 
 @app.get("/receiving/")
@@ -787,7 +793,8 @@ def issue_from_batch(req: IssuanceCreate,
         batch.remaining_qty = 0
     record = IssuanceRecord(batch_id=batch.id, batch_no=batch.internal_batch_no,
                             item_name=batch.item_name, warehouse_type=batch.warehouse_type,
-                            quantity_issued=req.quantity_issued, issued_by=current_user.username,
+                            quantity_issued=req.quantity_issued, unit=batch.unit,
+                            issued_by=current_user.username,
                             purpose=req.purpose, notes=req.notes)
     db.add(record)
     db.commit()
@@ -806,7 +813,7 @@ def get_issuance_records(warehouse_type: Optional[str] = Query(None),
     records = q.order_by(IssuanceRecord.issued_at.desc()).limit(limit).all()
     return [{"id": r.id, "batch_no": r.batch_no, "item_name": r.item_name,
              "warehouse_type": r.warehouse_type, "quantity_issued": r.quantity_issued,
-             "issued_by": r.issued_by, "issued_at": r.issued_at,
+             "unit": r.unit, "issued_by": r.issued_by, "issued_at": r.issued_at,
              "purpose": r.purpose, "notes": r.notes} for r in records]
 
 # ===================== Endpoints: ERP - الفروع =====================

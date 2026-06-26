@@ -656,7 +656,7 @@
         </div>
         <div class="table-responsive">
           <table class="table table-sm">
-            <thead><tr><th>رقم الباتش</th><th>المادة</th><th>الكمية الأصلية</th><th>المتبقي</th><th>المورد</th><th>باتش المورد</th><th>تاريخ الإنتاج</th><th>تاريخ الانتهاء</th><th>الحالة</th></tr></thead>
+            <thead><tr><th>رقم الباتش</th><th>المادة</th><th>الكمية الأصلية</th><th>المتبقي</th><th>الوحدة</th><th>المورد</th><th>باتش المورد</th><th>تاريخ الإنتاج</th><th>تاريخ الانتهاء</th><th>الحالة</th></tr></thead>
             <tbody id="rawBatchList"></tbody>
           </table>
         </div>
@@ -702,7 +702,7 @@
         </div>
         <div class="table-responsive">
           <table class="table table-sm">
-            <thead><tr><th>رقم الباتش</th><th>المادة</th><th>الكمية الأصلية</th><th>المتبقي</th><th>المورد</th><th>باتش المورد</th><th>تاريخ الإنتاج</th><th>تاريخ الانتهاء</th><th>الحالة</th></tr></thead>
+            <thead><tr><th>رقم الباتش</th><th>المادة</th><th>الكمية الأصلية</th><th>المتبقي</th><th>الوحدة</th><th>المورد</th><th>باتش المورد</th><th>تاريخ الإنتاج</th><th>تاريخ الانتهاء</th><th>الحالة</th></tr></thead>
             <tbody id="pkgBatchList"></tbody>
           </table>
         </div>
@@ -748,7 +748,7 @@
         </div>
         <div class="table-responsive">
           <table class="table table-sm">
-            <thead><tr><th>رقم الباتش</th><th>المنتج</th><th>الكمية الأصلية</th><th>المتبقي</th><th>تاريخ الإنتاج</th><th>تاريخ الانتهاء</th><th>الحالة</th></tr></thead>
+            <thead><tr><th>رقم الباتش</th><th>المنتج</th><th>الكمية الأصلية</th><th>المتبقي</th><th>الوحدة</th><th>تاريخ الإنتاج</th><th>تاريخ الانتهاء</th><th>الحالة</th></tr></thead>
             <tbody id="finBatchList"></tbody>
           </table>
         </div>
@@ -794,6 +794,23 @@
             <input id="recQty" class="form-control" type="number" placeholder="0">
           </div>
           <div class="col-md-2">
+            <label class="form-label fw-bold">الوحدة</label>
+            <input id="recUnit" class="form-control" list="dl-units" placeholder="كيلو / لتر / عبوة ...">
+            <datalist id="dl-units">
+              <option value="كيلو">
+              <option value="جرام">
+              <option value="لتر">
+              <option value="مل">
+              <option value="عبوة">
+              <option value="كرتون">
+              <option value="حبة">
+              <option value="رول">
+              <option value="رزمة">
+              <option value="شيكارة">
+              <option value="علبة">
+            </datalist>
+          </div>
+          <div class="col-md-2">
             <label class="form-label fw-bold">تاريخ الاستلام</label>
             <input id="recDate" class="form-control" type="date">
           </div>
@@ -827,7 +844,7 @@
         <div class="card-title">📋 آخر الشحنات المستلمة</div>
         <div class="table-responsive">
           <table class="table table-sm">
-            <thead><tr><th>رقم الباتش</th><th>المادة</th><th>المخزن</th><th>الكمية</th><th>المورد</th><th>باتش المورد</th><th>تاريخ الاستلام</th><th>تاريخ الانتهاء</th><th>المستلِم</th></tr></thead>
+            <thead><tr><th>رقم الباتش</th><th>المادة</th><th>المخزن</th><th>الكمية</th><th>الوحدة</th><th>المورد</th><th>باتش المورد</th><th>تاريخ الاستلام</th><th>تاريخ الانتهاء</th><th>المستلِم</th></tr></thead>
             <tbody id="receivingList"></tbody>
           </table>
         </div>
@@ -887,7 +904,7 @@
         </div>
         <div class="table-responsive">
           <table class="table table-sm">
-            <thead><tr><th>رقم الباتش</th><th>المادة</th><th>المخزن</th><th>الكمية المصروفة</th><th>الغرض</th><th>المصروف بواسطة</th><th>الوقت</th></tr></thead>
+            <thead><tr><th>رقم الباتش</th><th>المادة</th><th>المخزن</th><th>الكمية المصروفة</th><th>الوحدة</th><th>الغرض</th><th>المصروف بواسطة</th><th>الوقت</th></tr></thead>
             <tbody id="issuanceList"></tbody>
           </table>
         </div>
@@ -936,7 +953,7 @@
         <div class="card-title">📋 الخامات المرتبطة بالباتش المختار</div>
         <div class="table-responsive">
           <table class="table table-sm">
-            <thead><tr><th>المنتج النهائي</th><th>الخامة / المادة</th><th>نوع المخزن</th><th>باتش الخامة</th><th>الكمية المستخدمة</th><th>بواسطة</th><th>الوقت</th><th></th></tr></thead>
+            <thead><tr><th>المنتج النهائي</th><th>الخامة / المادة</th><th>نوع المخزن</th><th>باتش الخامة</th><th>الكمية المستخدمة</th><th>الوحدة</th><th>بواسطة</th><th>الوقت</th><th></th></tr></thead>
             <tbody id="productionLinksList"></tbody>
           </table>
         </div>
@@ -1652,22 +1669,27 @@
                       b.status==='depleted'?`<span class="pill pill-slate">نفذ</span>`:
                       `<span class="pill pill-rose">منتهي</span>`;
       const isFinished = wh==='finished';
+      const unitBadge = `<span class="badge" style="background:#e0f2fe;color:#0369a1;font-weight:600">${b.unit||'—'}</span>`;
       return `<tr>
         <td><code style="font-size:0.82rem;background:#f1f5f9;padding:2px 6px;border-radius:5px">${b.internal_batch_no}</code></td>
         <td>${b.item_name}</td>
-        <td>${b.quantity} ${b.unit||''}</td>
-        <td><strong>${b.remaining_qty} ${b.unit||''}</strong></td>
+        <td>${b.quantity}</td>
+        <td><strong>${b.remaining_qty}</strong></td>
+        <td>${unitBadge}</td>
         ${!isFinished?`<td>${b.supplier_name||'—'}</td><td>${b.supplier_batch_no||'—'}</td>`:''}
         <td>${fmtDate(b.production_date)}</td>
         <td>${fmtDate(b.expiry_date)} ${badge}</td>
         <td>${stBadge}</td>
       </tr>`;
-    }).join('') || `<tr><td colspan="9" class="text-center text-muted py-4">لا توجد باتشات</td></tr>`;
+    }).join('') || `<tr><td colspan="10" class="text-center text-muted py-4">لا توجد باتشات</td></tr>`;
   }
 
   // ======================== ERP — الاستلام ========================
 
   // — تحميل المواد لنموذج الاستلام —
+  // خريطة اسم المادة → وحدتها الافتراضية
+  let _unitMaps = {};
+
   async function loadItemsForReceiving() {
     const wh = document.getElementById('recWH').value;
     const r = await fetch(`${API}/warehouse/items/?warehouse_type=${wh}`, { headers: BH() });
@@ -1675,17 +1697,25 @@
     const data = await r.json();
     // تحديث خريطة اسم → ID
     _itemMaps[wh] = {};
+    _unitMaps[wh] = {};
     data.forEach(i => {
       _itemMaps[wh][i.name_ar] = i.id;
-      if (i.name_en) _itemMaps[wh][i.name_en] = i.id;
+      _unitMaps[wh][i.name_ar] = i.unit;
+      if (i.name_en) { _itemMaps[wh][i.name_en] = i.id; _unitMaps[wh][i.name_en] = i.unit; }
     });
     // تحديث الـ datalist
     const dl = document.getElementById('dl-rec-items');
     dl.innerHTML = data.map(i =>
-      `<option value="${i.name_ar}">${i.name_en ? ' — '+i.name_en : ''}</option>`
+      `<option value="${i.name_ar}" data-unit="${i.unit||''}">${i.name_en ? ' — '+i.name_en : ''}</option>`
     ).join('');
-    // مسح الحقل
+    // مسح الحقول
     document.getElementById('recItemInput').value = '';
+    // auto-fill الوحدة عند تغيير المادة
+    document.getElementById('recItemInput').oninput = function() {
+      const wh2 = document.getElementById('recWH').value;
+      const unit = _unitMaps[wh2]?.[this.value];
+      if (unit) document.getElementById('recUnit').value = unit;
+    };
   }
 
   // — تأكيد استلام شحنة —
@@ -1704,9 +1734,11 @@
     // البحث عن ID المادة من الخريطة
     const itemId = _itemMaps[wh]?.[itemName];
     if (!itemId) { toast(`المادة "${itemName}" غير معرّفة في المخزن — أضفها أولاً من صفحة المخزن ✋`,'warn'); return; }
+    const unit = document.getElementById('recUnit').value.trim();
     const payload = {
       warehouse_type: wh, item_id: parseInt(itemId),
-      quantity: qty, supplier_name: supplier,
+      quantity: qty, unit: unit||null,
+      supplier_name: supplier,
       supplier_batch_no: supBatch,
       production_date: prodDate||null, expiry_date: expDate||null,
       receiving_date: recDate||null, notes
@@ -1718,7 +1750,7 @@
     res.style.display='block';
     res.innerHTML=`<div class="alert alert-success">✅ تم الاستلام بنجاح | رقم الباتش: <strong>${d.batch_no}</strong></div>`;
     toast(`تم الاستلام — الباتش: ${d.batch_no}`,'success');
-    ['recItemInput','recQty','recSupplier','recSupBatch','recProdDate','recExpDate','recDate','recNotes'].forEach(id=>document.getElementById(id).value='');
+    ['recItemInput','recQty','recUnit','recSupplier','recSupBatch','recProdDate','recExpDate','recDate','recNotes'].forEach(id=>document.getElementById(id).value='');
     loadRecentBatches();
   }
 
@@ -1733,13 +1765,14 @@
         <td><code style="font-size:0.82rem;background:#f1f5f9;padding:2px 6px;border-radius:5px">${b.internal_batch_no}</code></td>
         <td>${b.item_name}</td>
         <td><span class="pill pill-slate">${wlabel[b.warehouse_type]||b.warehouse_type}</span></td>
-        <td>${b.quantity} ${b.unit||''}</td>
+        <td>${b.quantity}</td>
+        <td><span class="badge" style="background:#e0f2fe;color:#0369a1;font-weight:600">${b.unit||'—'}</span></td>
         <td>${b.supplier_name||'—'}</td>
         <td>${b.supplier_batch_no||'—'}</td>
         <td>${fmtDate(b.receiving_date||b.received_at)}</td>
         <td>${fmtDate(b.expiry_date)}</td>
         <td>${b.received_by||'—'}</td>
-      </tr>`).join('') || `<tr><td colspan="9" class="text-center text-muted py-4">لا توجد شحنات</td></tr>`;
+      </tr>`).join('') || `<tr><td colspan="10" class="text-center text-muted py-4">لا توجد شحنات</td></tr>`;
   }
 
   // ======================== ERP — الصرف ========================
@@ -1803,10 +1836,11 @@
         <td>${rec.item_name}</td>
         <td><span class="pill pill-slate">${wlabel[rec.warehouse_type]||rec.warehouse_type}</span></td>
         <td><strong>${rec.quantity_issued}</strong></td>
+        <td><span class="badge" style="background:#e0f2fe;color:#0369a1;font-weight:600">${rec.unit||'—'}</span></td>
         <td>${plabel[rec.purpose]||rec.purpose||'—'}</td>
         <td>${rec.issued_by||'—'}</td>
         <td><small class="text-muted">${rec.issued_at?rec.issued_at.replace('T',' ').substring(0,16):''}</small></td>
-      </tr>`).join('') || `<tr><td colspan="7" class="text-center text-muted py-4">لا توجد عمليات صرف</td></tr>`;
+      </tr>`).join('') || `<tr><td colspan="8" class="text-center text-muted py-4">لا توجد عمليات صرف</td></tr>`;
   }
 
   // ======================== ERP — ربط الإنتاج ========================
@@ -1852,11 +1886,12 @@
         <td>${l.raw_item_name}</td>
         <td><span class="pill pill-slate">${wlabel[l.warehouse_type]||l.warehouse_type}</span></td>
         <td><code style="font-size:0.82rem;background:#f1f5f9;padding:2px 6px;border-radius:5px">${l.raw_batch_no}</code></td>
-        <td><strong>${l.quantity_used} ${l.unit||''}</strong></td>
+        <td><strong>${l.quantity_used}</strong></td>
+        <td><span class="badge" style="background:#e0f2fe;color:#0369a1;font-weight:600">${l.unit||'—'}</span></td>
         <td>${l.linked_by||'—'}</td>
         <td><small class="text-muted">${fmtDate(l.linked_at)}</small></td>
         <td><button onclick="deleteProdLink(${l.id})" class="btn btn-sm btn-outline-danger">🗑️</button></td>
-      </tr>`).join('') || `<tr><td colspan="8" class="text-center text-muted py-4">لا توجد روابط</td></tr>`;
+      </tr>`).join('') || `<tr><td colspan="9" class="text-center text-muted py-4">لا توجد روابط</td></tr>`;
   }
 
   async function submitProductionLink() {
@@ -1955,7 +1990,7 @@
         <td>${rec.item_name}</td>
         <td><span class="pill pill-indigo">${rec.branch_name}</span></td>
         <td><strong>${rec.quantity}</strong></td>
-        <td>${rec.unit||'—'}</td>
+        <td><span class="badge" style="background:#e0f2fe;color:#0369a1;font-weight:600">${rec.unit||'—'}</span></td>
         <td><small class="text-muted">${fmtDate(rec.distribution_date)}</small></td>
         <td>${rec.distributed_by||'—'}</td>
         <td><small>${rec.notes||'—'}</small></td>
