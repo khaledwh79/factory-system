@@ -1,3 +1,14 @@
+import sys, traceback
+
+def _crash(exc_type, exc_value, exc_tb):
+    print("="*60, flush=True)
+    print(f"STARTUP CRASH: {exc_type.__name__}: {exc_value}", flush=True)
+    traceback.print_exception(exc_type, exc_value, exc_tb)
+    print("="*60, flush=True)
+    sys.exit(1)
+
+sys.excepthook = _crash
+
 from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -148,7 +159,14 @@ class DistributionRecord(Base):
     distributed_by = Column(String)
     notes = Column(Text, nullable=True)
 
-Base.metadata.create_all(bind=engine)
+print(f"[STARTUP] DB URL type: {'postgresql' if 'postgresql' in SQLALCHEMY_DATABASE_URL else 'sqlite'}", flush=True)
+try:
+    Base.metadata.create_all(bind=engine)
+    print("[STARTUP] create_all OK", flush=True)
+except BaseException as e:
+    print(f"[STARTUP ERROR] create_all failed: {type(e).__name__}: {e}", flush=True)
+    traceback.print_exc()
+    sys.exit(1)
 
 # ===== ترقية قاعدة البيانات — إضافة الأعمدة الجديدة إن لم تكن موجودة =====
 def migrate_db():
@@ -1049,4 +1067,11 @@ def report_overview(current_user: User = Depends(get_current_user),
     total_pkg = db.query(Batch).filter(Batch.warehouse_type=="packaging", Batch.status=="active").count()
     total_fin = db.query(Batch).filter(Batch.warehouse_type=="finished", Batch.status=="active").count()
     total_dist = db.query(DistributionRecord).count()
-    total_links = db.query(ProductionLink).c
+    total_links = db.query(ProductionLink).count()
+    return {
+        "active_batches": {"raw": total_raw, "packaging": total_pkg, "finished": total_fin},
+        "total_distributions": total_dist,
+        "total_production_links": total_links,
+    }
+
+# ===================== Endpoints: الصفحات ==========
